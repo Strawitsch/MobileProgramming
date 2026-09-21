@@ -6,17 +6,11 @@ import android.os.Bundle
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
+import com.example.bugs.model.Gender
+import com.example.bugs.model.Player
+import com.example.bugs.model.Zodiac
 import java.text.SimpleDateFormat
 import java.util.*
-
-data class Player(
-    val fullName: String,
-    val gender: String,
-    val course: String,
-    val difficulty: Int,
-    val birthDate: String,
-    val zodiac: String
-)
 
 class MainActivity : AppCompatActivity() {
 
@@ -92,16 +86,16 @@ class MainActivity : AppCompatActivity() {
             selectedDate = parsedDate
 
             val gender = when (rgGender.checkedRadioButtonId) {
-                R.id.rbMale -> "Мужской"
-                R.id.rbFemale -> "Женский"
-                else -> "Не указан"
+                R.id.rbMale -> Gender.MALE
+                R.id.rbFemale -> Gender.FEMALE
+                else -> Gender.UNKNOWN
             }
 
             val course = spinnerCourse.selectedItem.toString()
             val difficulty = seekBarDifficulty.progress
             val birthDate = dateFormat.format(selectedDate.time)
 
-            val zodiac = getZodiac(
+            val zodiac = Zodiac.fromDate(
                 selectedDate.get(Calendar.MONTH) + 1,
                 selectedDate.get(Calendar.DAY_OF_MONTH)
             )
@@ -110,16 +104,15 @@ class MainActivity : AppCompatActivity() {
 
             tvResult.text = """
                 ФИО: ${player.fullName}
-                Пол: ${player.gender}
+                Пол: ${player.gender.displayName}
                 Курс: ${player.course}
                 Уровень сложности: ${difficultyLevels[player.difficulty]}
                 Дата рождения: ${player.birthDate}
-                Знак зодиака: ${player.zodiac} ${getZodiacSymbol(player.zodiac)}
+                Знак зодиака: ${player.zodiac.displayName} ${player.zodiac.symbol}
             """.trimIndent()
 
-            val symbol = getZodiacSymbol(zodiac)
-            if (symbol.isNotEmpty()) {
-                tvZodiacSymbol.text = symbol
+            if (zodiac.symbol.isNotEmpty()) {
+                tvZodiacSymbol.text = zodiac.symbol
                 tvZodiacSymbol.visibility = View.VISIBLE
             } else {
                 tvZodiacSymbol.visibility = View.GONE
@@ -136,41 +129,6 @@ class MainActivity : AppCompatActivity() {
             if (check != text) null else cal
         } catch (e: Exception) {
             null
-        }
-    }
-
-    private fun getZodiac(month: Int, day: Int): String {
-        return when {
-            (month == 1 && day >= 20) || (month == 2 && day <= 18) -> "Водолей"
-            (month == 2 && day >= 19) || (month == 3 && day <= 20) -> "Рыбы"
-            (month == 3 && day >= 21) || (month == 4 && day <= 19) -> "Овен"
-            (month == 4 && day >= 20) || (month == 5 && day <= 20) -> "Телец"
-            (month == 5 && day >= 21) || (month == 6 && day <= 20) -> "Близнецы"
-            (month == 6 && day >= 21) || (month == 7 && day <= 22) -> "Рак"
-            (month == 7 && day >= 23) || (month == 8 && day <= 22) -> "Лев"
-            (month == 8 && day >= 23) || (month == 9 && day <= 22) -> "Дева"
-            (month == 9 && day >= 23) || (month == 10 && day <= 22) -> "Весы"
-            (month == 10 && day >= 23) || (month == 11 && day <= 21) -> "Скорпион"
-            (month == 11 && day >= 22) || (month == 12 && day <= 21) -> "Стрелец"
-            else -> "Козерог"
-        }
-    }
-
-    private fun getZodiacSymbol(zodiac: String): String {
-        return when (zodiac) {
-            "Водолей" -> "♒"
-            "Рыбы" -> "♓"
-            "Овен" -> "♈"
-            "Телец" -> "♉"
-            "Близнецы" -> "♊"
-            "Рак" -> "♋"
-            "Лев" -> "♌"
-            "Дева" -> "♍"
-            "Весы" -> "♎"
-            "Скорпион" -> "♏"
-            "Стрелец" -> "♐"
-            "Козерог" -> "♑"
-            else -> ""
         }
     }
 }
