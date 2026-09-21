@@ -1,5 +1,6 @@
 package com.example.bugs
 
+import android.annotation.SuppressLint
 import android.app.DatePickerDialog
 import android.os.Bundle
 import android.view.View
@@ -22,6 +23,7 @@ class MainActivity : AppCompatActivity() {
     private val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
     private var selectedDate: Calendar = Calendar.getInstance()
 
+    @SuppressLint("SetTextI18n")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
