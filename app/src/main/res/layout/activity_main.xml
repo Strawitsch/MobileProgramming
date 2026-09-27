@@ -1,143 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
-
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main"
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:padding="16dp">
+    android:layout_height="match_parent">
 
-<LinearLayout
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:orientation="vertical">
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Регистрация игрока"
-        android:textSize="24sp"
-        android:layout_marginBottom="16dp"/>
-
-    <EditText
-        android:id="@+id/etFullName"
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/nav_host_fragment"
         android:layout_width="match_parent"
-        android:layout_height="68dp"
-        android:digits="АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюяABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz -"
-        android:hint="ФИО"
-        android:inputType="text"
-        android:maxLines="1" />
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toTopOf="@+id/bottom_navigation"
+        app:layout_constraintTop_toTopOf="parent" />
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Пол"
-        android:layout_marginTop="12dp"/>
-
-    <RadioGroup
-        android:id="@+id/rgGender"
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottom_navigation"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:background="@android:color/white"
+        app:menu="@menu/bottom_nav_menu"
+        app:layout_constraintBottom_toBottomOf="parent" />
 
-        <RadioButton
-            android:id="@+id/rbMale"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Мужской"
-            android:checked="true"/>
-
-        <RadioButton
-            android:id="@+id/rbFemale"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Женский"
-            android:layout_marginStart="16dp"/>
-    </RadioGroup>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Курс"
-        android:layout_marginTop="12dp"/>
-
-    <Spinner
-        android:id="@+id/spinnerCourse"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Уровень сложности"
-        android:layout_marginTop="12dp"/>
-
-    <SeekBar
-        android:id="@+id/seekBarDifficulty"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:max="4"
-        android:progress="0" />
-
-    <TextView
-        android:id="@+id/tvDifficultyLabel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Очень легко" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Дата рождения (ДД.ММ.ГГГГ)"
-        android:layout_marginTop="12dp"/>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_marginTop="4dp">
-
-        <EditText
-            android:id="@+id/etBirthDate"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:hint="дд.мм.гггг"
-            android:inputType="date"
-            android:maxLength="10" />
-
-        <Button
-            android:id="@+id/btnPickDate"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Выбрать"
-            android:layout_marginStart="8dp" />
-    </LinearLayout>
-
-    <TextView
-        android:id="@+id/tvZodiacSymbol"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginTop="12dp"
-        android:textSize="72sp"
-        android:textColor="#FFC107"
-        android:visibility="gone"
-        tools:ignore="HardcodedText" />
-
-    <Button
-        android:id="@+id/btnRegister"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Зарегистрироваться"
-        android:layout_marginTop="16dp" />
-
-    <TextView
-        android:id="@+id/tvResult"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:textSize="16sp" />
-
-</LinearLayout>
-</ScrollView>
+</androidx.constraintlayout.widget.ConstraintLayout>
