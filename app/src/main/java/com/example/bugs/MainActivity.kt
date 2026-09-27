@@ -1,7 +1,6 @@
 package com.example.bugs
 
 import android.os.Bundle
-import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.example.bugs.ui.authors.AuthorsFragment
@@ -9,8 +8,6 @@ import com.example.bugs.ui.registration.RegistrationFragment
 import com.example.bugs.ui.rules.RulesFragment
 import com.example.bugs.ui.settings.SettingsFragment
 import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.example.bugs.model.*
-import java.util.*
 
 class MainActivity : AppCompatActivity() {
 
