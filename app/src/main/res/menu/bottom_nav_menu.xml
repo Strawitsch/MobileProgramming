@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/nav_registration" android:title="Игрок" android:icon="@android:drawable/ic_menu_edit"/>
+    <item android:id="@+id/nav_rules" android:title="Правила" android:icon="@android:drawable/ic_menu_info_details"/>
+    <item android:id="@+id/nav_authors" android:title="Авторы" android:icon="@android:drawable/ic_menu_myplaces"/>
+    <item android:id="@+id/nav_settings" android:title="Настройки" android:icon="@android:drawable/ic_menu_preferences"/>
+</menu>
