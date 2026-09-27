@@ -130,6 +130,7 @@ class RegistrationFragment : Fragment() {
             prefs.edit()
                 .putString("player_name", player.fullName)
                 .putInt("player_difficulty", player.difficulty)
+                .putBoolean("is_registered", true)
                 .apply()
         }
     }
