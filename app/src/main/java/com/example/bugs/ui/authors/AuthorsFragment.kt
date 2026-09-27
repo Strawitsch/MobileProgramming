@@ -25,11 +25,9 @@ class AuthorsFragment : Fragment() {
         val rvAuthors = view.findViewById<RecyclerView>(R.id.rvAuthors)
         rvAuthors.layoutManager = LinearLayoutManager(context)
 
-        // Пример списка авторов. Замените drawable на свои изображения
         val authors = listOf(
-            Author("Иванов Иван", R.drawable.ic_launcher_background),
-            Author("Петров Петр", R.drawable.ic_launcher_background),
-            Author("Сидорова Анна", R.drawable.ic_launcher_background)
+            Author("Иваненко Дмитрий ИП-313", R.drawable.ic_launcher_background),
+            Author("Крючков Константин ИП-313", R.drawable.ic_launcher_background),
         )
 
         rvAuthors.adapter = AuthorsAdapter(authors)
