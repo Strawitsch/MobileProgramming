@@ -6,12 +6,12 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import kotlin.math.abs
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var viewPager: ViewPager2
     private lateinit var bottomNav: BottomNavigationView
-    private lateinit var pagerAdapter: MainPagerAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -20,17 +20,12 @@ class MainActivity : AppCompatActivity() {
         viewPager = findViewById(R.id.viewPager)
         bottomNav = findViewById(R.id.bottom_navigation)
 
-        pagerAdapter = MainPagerAdapter(this)
-        viewPager.adapter = pagerAdapter
-
+        viewPager.adapter = MainPagerAdapter(this)
         viewPager.setPageTransformer { page, position ->
-            page.alpha = 1f - 0.2f * kotlin.math.abs(position)
+            page.alpha = 1f - 0.2f * abs(position)
         }
 
-        val prefs = getSharedPreferences("game_prefs", Context.MODE_PRIVATE)
-        val isRegistered = prefs.getBoolean("is_registered", false)
-
-        val startPos = if (isRegistered) {
+        val startPos = if (isUserRegistered()) {
             MainPagerAdapter.POS_GAME
         } else {
             MainPagerAdapter.POS_REGISTRATION
@@ -40,6 +35,15 @@ class MainActivity : AppCompatActivity() {
 
         viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
+                if (position == MainPagerAdapter.POS_GAME && !isUserRegistered()) {
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Сначала зарегистрируйтесь на вкладке «Игрок»",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    viewPager.setCurrentItem(MainPagerAdapter.POS_REGISTRATION, true)
+                    return
+                }
                 bottomNav.selectedItemId = positionToMenuId(position)
             }
         })
@@ -54,33 +58,6 @@ class MainActivity : AppCompatActivity() {
             viewPager.setCurrentItem(position, true)
             true
         }
-
-        viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
-            override fun onPageScrollStateChanged(state: Int) {
-                if (state == ViewPager2.SCROLL_STATE_DRAGGING) {
-                    val nextPos = viewPager.currentItem + 1
-                    if (nextPos == MainPagerAdapter.POS_GAME && !isUserRegistered()) {
-                    }
-                }
-            }
-
-            override fun onPageSelected(position: Int) {
-                if (position == MainPagerAdapter.POS_GAME && !isUserRegistered()) {
-                    Toast.makeText(
-                        this@MainActivity,
-                        "Сначала зарегистрируйтесь на вкладке «Игрок»",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    viewPager.setCurrentItem(MainPagerAdapter.POS_REGISTRATION, true)
-                    return
-                }
-                bottomNav.selectedItemId = positionToMenuId(position)
-            }
-        })
-    }
-
-    override fun onResume() {
-        super.onResume()
     }
 
     private fun isUserRegistered(): Boolean {

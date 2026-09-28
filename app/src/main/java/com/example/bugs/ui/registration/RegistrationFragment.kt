@@ -12,6 +12,9 @@ import com.example.bugs.R
 import com.example.bugs.model.Gender
 import com.example.bugs.model.Player
 import com.example.bugs.model.Zodiac
+import androidx.viewpager2.widget.ViewPager2
+import com.example.bugs.MainActivity
+import com.example.bugs.MainPagerAdapter
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -132,6 +135,11 @@ class RegistrationFragment : Fragment() {
                 .putInt("player_difficulty", player.difficulty)
                 .putBoolean("is_registered", true)
                 .apply()
+
+            (activity as? MainActivity)?.let { mainActivity ->
+                val viewPager = mainActivity.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.viewPager)
+                viewPager?.setCurrentItem(MainPagerAdapter.POS_GAME, true)
+            }
         }
     }
 

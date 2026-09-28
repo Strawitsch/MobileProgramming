@@ -77,8 +77,6 @@ class GameFragment : Fragment() {
             }
             false
         }
-
-        startGame()
     }
 
     private fun showRegistrationRequired() {
@@ -210,5 +208,34 @@ class GameFragment : Fragment() {
         gameLoop?.let { handler.removeCallbacks(it) }
         bonusLoop?.let { handler.removeCallbacks(it) }
         timerJob?.cancel()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (isGameRunning) {
+            stopGame()
+        }
+        if (isUserRegistered()) {
+            loadSettings()
+            startGame()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        stopGame()
+    }
+
+    private fun stopGame() {
+        isGameRunning = false
+        gameLoop?.let { handler.removeCallbacks(it) }
+        bonusLoop?.let { handler.removeCallbacks(it) }
+        timerJob?.cancel()
+        container.removeAllViews()
+    }
+
+    private fun isUserRegistered(): Boolean {
+        val prefs = requireContext().getSharedPreferences("game_prefs", Context.MODE_PRIVATE)
+        return prefs.getBoolean("is_registered", false)
     }
 }
