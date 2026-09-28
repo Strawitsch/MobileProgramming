@@ -1,5 +1,8 @@
 package com.example.bugs.ui.game
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.ObjectAnimator
 import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Bundle
@@ -40,9 +43,7 @@ class GameFragment : Fragment() {
     private var maxBugs = 10
     private var bonusInterval = 15
     private var roundDuration = 60
-
-    private val minDelayMs = 100L
-    private val maxDelayMs = 1000L
+    private val bugSize = 120
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -60,16 +61,6 @@ class GameFragment : Fragment() {
         tvTimer = view.findViewById(R.id.tvTimer)
         tvBonus = view.findViewById(R.id.tvBonus)
 
-        val prefs = requireContext().getSharedPreferences("game_prefs", Context.MODE_PRIVATE)
-        val isRegistered = prefs.getBoolean("is_registered", false)
-
-        if (!isRegistered) {
-            showRegistrationRequired()
-            return
-        }
-
-        loadSettings()
-
         container.setOnTouchListener { _, event ->
             if (event.action == MotionEvent.ACTION_DOWN && isGameRunning) {
                 misses++
@@ -79,8 +70,35 @@ class GameFragment : Fragment() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+            stopGame()
+        if (!isUserRegistered()) {
+            showRegistrationRequired()
+        } else {
+            clearContainer()
+            loadSettings()
+            startGame()
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        stopGame()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        stopGame()
+    }
+
+    private fun isUserRegistered(): Boolean {
+        val prefs = requireContext().getSharedPreferences("game_prefs", Context.MODE_PRIVATE)
+        return prefs.getBoolean("is_registered", false)
+    }
+
     private fun showRegistrationRequired() {
-        container.removeAllViews()
+        clearContainer()
         val tv = TextView(requireContext()).apply {
             text = "Сначала зарегистрируйтесь на вкладке «Игрок»"
             textSize = 20f
@@ -97,6 +115,10 @@ class GameFragment : Fragment() {
         tvBonus.text = "Бонус: -"
     }
 
+    private fun clearContainer() {
+        container.removeAllViews()
+    }
+
     private fun loadSettings() {
         val prefs = requireContext().getSharedPreferences("game_prefs", Context.MODE_PRIVATE)
         speed = prefs.getInt("speed", 5).coerceIn(1, 10)
@@ -108,6 +130,11 @@ class GameFragment : Fragment() {
     private fun getSpawnDelayMs(): Long {
         val normalized = (speed - 1) / 9f
         return (1000L - (900L * normalized)).toLong()
+    }
+
+    private fun getBugFlightDurationMs(): Long {
+        val normalized = (speed - 1) / 9f
+        return (4000L - (3200L * normalized)).toLong()
     }
 
     private fun startGame() {
@@ -153,9 +180,21 @@ class GameFragment : Fragment() {
         handler.postDelayed(bonusLoop!!, bonusInterval * 1000L)
     }
 
+    private fun stopGame() {
+        isGameRunning = false
+        gameLoop?.let { handler.removeCallbacks(it) }
+        bonusLoop?.let { handler.removeCallbacks(it) }
+        timerJob?.cancel()
+        clearContainer()
+    }
+
     @SuppressLint("ClickableViewAccessibility")
     private fun spawnBug(isBonus: Boolean) {
-        val size = if (isBonus) 150 else 120
+        val width = container.width
+        val height = container.height
+        if (width <= bugSize || height <= bugSize) return
+
+        val size = if (isBonus) 150 else bugSize
         val bug = ImageView(requireContext())
         bug.setImageResource(
             if (isBonus) android.R.drawable.star_big_on
@@ -163,29 +202,74 @@ class GameFragment : Fragment() {
         )
         bug.layoutParams = FrameLayout.LayoutParams(size, size)
 
-        val maxX = container.width - size
-        val maxY = container.height - size
-        if (maxX <= 0 || maxY <= 0) return
+        val side = Random.nextInt(4)
 
-        bug.x = Random.nextInt(0, maxX).toFloat()
-        bug.y = Random.nextInt(0, maxY).toFloat()
+        val startX: Float
+        val startY: Float
+        val endX: Float
+        val endY: Float
 
+        when (side) {
+            0 -> {
+                startX = -size.toFloat()
+                startY = Random.nextInt(0, height - size).toFloat()
+                endX = width.toFloat()
+                endY = startY
+            }
+            1 -> {
+                startX = width.toFloat()
+                startY = Random.nextInt(0, height - size).toFloat()
+                endX = -size.toFloat()
+                endY = startY
+            }
+            2 -> {
+                startX = Random.nextInt(0, width - size).toFloat()
+                startY = -size.toFloat()
+                endX = startX
+                endY = height.toFloat()
+            }
+            else -> {
+                startX = Random.nextInt(0, width - size).toFloat()
+                startY = height.toFloat()
+                endX = startX
+                endY = -size.toFloat()
+            }
+        }
+
+        bug.x = startX
+        bug.y = startY
+
+        var isKilled = false
         bug.setOnClickListener {
+            if (isKilled) return@setOnClickListener
+            isKilled = true
             val points = if (isBonus) 50 else 10
             score += points
             tvScore.text = "Очки: $score"
             if (isBonus) tvBonus.text = "Бонус: +$points"
+            (bug.animate() as? ObjectAnimator)?.cancel()
+            bug.animate().cancel()
             container.removeView(bug)
         }
 
         container.addView(bug)
 
+        val duration = getBugFlightDurationMs()
+        val animX = ObjectAnimator.ofFloat(bug, "x", startX, endX)
+        val animY = ObjectAnimator.ofFloat(bug, "y", startY, endY)
+        animX.duration = duration
+        animY.duration = duration
 
-        handler.postDelayed({
-            if (container.indexOfChild(bug) != -1) {
-                container.removeView(bug)
+        animX.addListener(object : AnimatorListenerAdapter() {
+            override fun onAnimationEnd(animation: Animator) {
+                if (!isKilled) {
+                    container.removeView(bug)
+                }
             }
-        }, 5000L)
+        })
+
+        animX.start()
+        animY.start()
     }
 
     private fun endGame() {
@@ -193,49 +277,12 @@ class GameFragment : Fragment() {
         gameLoop?.let { handler.removeCallbacks(it) }
         bonusLoop?.let { handler.removeCallbacks(it) }
         timerJob?.cancel()
-        container.removeAllViews()
+        clearContainer()
 
         Toast.makeText(
             context,
             "Игра окончена! Очки: $score, Промахи: $misses",
             Toast.LENGTH_LONG
         ).show()
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        isGameRunning = false
-        gameLoop?.let { handler.removeCallbacks(it) }
-        bonusLoop?.let { handler.removeCallbacks(it) }
-        timerJob?.cancel()
-    }
-
-    override fun onResume() {
-        super.onResume()
-        if (isGameRunning) {
-            stopGame()
-        }
-        if (isUserRegistered()) {
-            loadSettings()
-            startGame()
-        }
-    }
-
-    override fun onPause() {
-        super.onPause()
-        stopGame()
-    }
-
-    private fun stopGame() {
-        isGameRunning = false
-        gameLoop?.let { handler.removeCallbacks(it) }
-        bonusLoop?.let { handler.removeCallbacks(it) }
-        timerJob?.cancel()
-        container.removeAllViews()
-    }
-
-    private fun isUserRegistered(): Boolean {
-        val prefs = requireContext().getSharedPreferences("game_prefs", Context.MODE_PRIVATE)
-        return prefs.getBoolean("is_registered", false)
     }
 }

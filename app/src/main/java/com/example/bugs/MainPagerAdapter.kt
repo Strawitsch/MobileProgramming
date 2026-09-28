@@ -26,8 +26,8 @@ class MainPagerAdapter(activity: FragmentActivity) : FragmentStateAdapter(activi
 
     companion object {
         const val POS_REGISTRATION = 0
-        const val POS_GAME = 1
-        const val POS_RULES = 2
+        const val POS_GAME = 2
+        const val POS_RULES = 1
         const val POS_AUTHORS = 3
         const val POS_SETTINGS = 4
     }
