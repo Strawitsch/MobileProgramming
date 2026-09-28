@@ -4,50 +4,105 @@ import android.content.Context
 import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.fragment.app.Fragment
-import com.example.bugs.ui.authors.AuthorsFragment
-import com.example.bugs.ui.registration.RegistrationFragment
-import com.example.bugs.ui.rules.RulesFragment
-import com.example.bugs.ui.settings.SettingsFragment
-import com.example.bugs.ui.game.GameFragment
+import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.bottomnavigation.BottomNavigationView
 
 class MainActivity : AppCompatActivity() {
+
+    private lateinit var viewPager: ViewPager2
+    private lateinit var bottomNav: BottomNavigationView
+    private lateinit var pagerAdapter: MainPagerAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        viewPager = findViewById(R.id.viewPager)
+        bottomNav = findViewById(R.id.bottom_navigation)
+
+        pagerAdapter = MainPagerAdapter(this)
+        viewPager.adapter = pagerAdapter
+
+        viewPager.setPageTransformer { page, position ->
+            page.alpha = 1f - 0.2f * kotlin.math.abs(position)
+        }
+
         val prefs = getSharedPreferences("game_prefs", Context.MODE_PRIVATE)
         val isRegistered = prefs.getBoolean("is_registered", false)
 
-        val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_navigation)
-
-        if (savedInstanceState == null) {
-            supportFragmentManager.beginTransaction()
-                .replace(R.id.nav_host_fragment, RegistrationFragment())
-                .commit()
+        val startPos = if (isRegistered) {
+            MainPagerAdapter.POS_GAME
+        } else {
+            MainPagerAdapter.POS_REGISTRATION
         }
+        viewPager.setCurrentItem(startPos, false)
+        bottomNav.selectedItemId = positionToMenuId(startPos)
 
-
+        viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                bottomNav.selectedItemId = positionToMenuId(position)
+            }
+        })
 
         bottomNav.setOnItemSelectedListener { item ->
-                if (item.itemId == R.id.nav_game && !prefs.getBoolean("is_registered", false)) {
-                    Toast.makeText(this, "Сначала зарегистрируйтесь", Toast.LENGTH_SHORT).show()
-                    return@setOnItemSelectedListener false
-                }
-            val fragment: Fragment = when (item.itemId) {
-                R.id.nav_registration -> RegistrationFragment()
-                R.id.nav_game -> GameFragment()
-                R.id.nav_rules -> RulesFragment()
-                R.id.nav_authors -> AuthorsFragment()
-                R.id.nav_settings -> SettingsFragment()
-                else -> return@setOnItemSelectedListener false
+            val position = menuIdToPosition(item.itemId)
+            if (position == MainPagerAdapter.POS_GAME && !isUserRegistered()) {
+                Toast.makeText(this, "Сначала зарегистрируйтесь", Toast.LENGTH_SHORT).show()
+                bottomNav.selectedItemId = positionToMenuId(viewPager.currentItem)
+                return@setOnItemSelectedListener false
             }
-            supportFragmentManager.beginTransaction()
-                .replace(R.id.nav_host_fragment, fragment)
-                .commit()
+            viewPager.setCurrentItem(position, true)
             true
         }
+
+        viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageScrollStateChanged(state: Int) {
+                if (state == ViewPager2.SCROLL_STATE_DRAGGING) {
+                    val nextPos = viewPager.currentItem + 1
+                    if (nextPos == MainPagerAdapter.POS_GAME && !isUserRegistered()) {
+                    }
+                }
+            }
+
+            override fun onPageSelected(position: Int) {
+                if (position == MainPagerAdapter.POS_GAME && !isUserRegistered()) {
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Сначала зарегистрируйтесь на вкладке «Игрок»",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    viewPager.setCurrentItem(MainPagerAdapter.POS_REGISTRATION, true)
+                    return
+                }
+                bottomNav.selectedItemId = positionToMenuId(position)
+            }
+        })
+    }
+
+    override fun onResume() {
+        super.onResume()
+    }
+
+    private fun isUserRegistered(): Boolean {
+        val prefs = getSharedPreferences("game_prefs", Context.MODE_PRIVATE)
+        return prefs.getBoolean("is_registered", false)
+    }
+
+    private fun positionToMenuId(position: Int): Int = when (position) {
+        MainPagerAdapter.POS_REGISTRATION -> R.id.nav_registration
+        MainPagerAdapter.POS_GAME -> R.id.nav_game
+        MainPagerAdapter.POS_RULES -> R.id.nav_rules
+        MainPagerAdapter.POS_AUTHORS -> R.id.nav_authors
+        MainPagerAdapter.POS_SETTINGS -> R.id.nav_settings
+        else -> R.id.nav_registration
+    }
+
+    private fun menuIdToPosition(menuId: Int): Int = when (menuId) {
+        R.id.nav_registration -> MainPagerAdapter.POS_REGISTRATION
+        R.id.nav_game -> MainPagerAdapter.POS_GAME
+        R.id.nav_rules -> MainPagerAdapter.POS_RULES
+        R.id.nav_authors -> MainPagerAdapter.POS_AUTHORS
+        R.id.nav_settings -> MainPagerAdapter.POS_SETTINGS
+        else -> MainPagerAdapter.POS_REGISTRATION
     }
 }
