@@ -1,9 +1,5 @@
 package com.example.bugs.ui.game
 
-import android.animation.Animator
-import android.animation.AnimatorListenerAdapter
-import android.animation.ObjectAnimator
-import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Bundle
 import android.os.Handler
@@ -13,44 +9,60 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.example.bugs.R
-import kotlinx.coroutines.*
-import kotlin.random.Random
+import com.example.bugs.model.game.Bug
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlin.math.hypot
 
+/**
+ *  - GameConfig       (настройки)
+ *  - BugPool          (переиспользование View)
+ *  - BugSpawner       (создание жуков)
+ *  - BugAnimator      (анимация сегментов)
+ *  - HammerManager    (бонус «молоток»)
+ *  - ScoreTracker     (очки и промахи)
+ */
 class GameFragment : Fragment() {
 
+    //View'шки
     private lateinit var container: FrameLayout
     private lateinit var tvScore: TextView
     private lateinit var tvMisses: TextView
     private lateinit var tvTimer: TextView
     private lateinit var tvBonus: TextView
 
-    private var score = 0
-    private var misses = 0
-    private var timeLeft = 60
+    // Подсистемы
+    private lateinit var config: GameConfig
+    private lateinit var pool: BugPool
+    private lateinit var spawner: BugSpawner
+    private lateinit var hammer: HammerManager
+    private val scoreTracker = ScoreTracker()
+
+    // Состояние раунда
     private var isGameRunning = false
+    private var timeLeft = 60
+    private var timerJob: Job? = null
 
     private val handler = Handler(Looper.getMainLooper())
     private var gameLoop: Runnable? = null
     private var bonusLoop: Runnable? = null
-    private var timerJob: Job? = null
 
-    private var speed = 5
-    private var maxBugs = 10
-    private var bonusInterval = 15
-    private var roundDuration = 60
+    private val activeBugs = mutableListOf<Bug>()
     private val bugSize = 120
+
+    // Lifecycle
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
-        return inflater.inflate(R.layout.fragment_game, container, false)
-    }
+    ): View? = inflater.inflate(R.layout.fragment_game, container, false)
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -63,21 +75,21 @@ class GameFragment : Fragment() {
 
         container.setOnTouchListener { _, event ->
             if (event.action == MotionEvent.ACTION_DOWN && isGameRunning) {
-                misses++
-                tvMisses.text = "Промахи: $misses"
+                handleTap(event.x, event.y)
             }
-            false
+            true
         }
     }
 
     override fun onResume() {
         super.onResume()
-            stopGame()
+        stopGame()
         if (!isUserRegistered()) {
             showRegistrationRequired()
         } else {
             clearContainer()
             loadSettings()
+            initSubsystems()
             startGame()
         }
     }
@@ -92,10 +104,31 @@ class GameFragment : Fragment() {
         stopGame()
     }
 
+    // Инициализация подсистем
+
+    private fun initSubsystems() {
+        pool = BugPool(requireContext(), container, bugSize)
+        spawner = BugSpawner(container, pool, config) {
+            scoreTracker.addMiss()
+            tvMisses.text = "Промахи: ${scoreTracker.misses}"
+        }
+        hammer = HammerManager(
+            config = config,
+            onTick = { seconds -> tvBonus.text = "МОЛОТОК! (${seconds}с)" },
+            onEnd = { tvBonus.text = "Бонус: -" }
+        )
+    }
+
+    private fun loadSettings() {
+        config = GameConfig.load(requireContext())
+    }
+
     private fun isUserRegistered(): Boolean {
         val prefs = requireContext().getSharedPreferences("game_prefs", Context.MODE_PRIVATE)
         return prefs.getBoolean("is_registered", false)
     }
+
+    // Заглушка регистрации
 
     private fun showRegistrationRequired() {
         clearContainer()
@@ -116,38 +149,25 @@ class GameFragment : Fragment() {
     }
 
     private fun clearContainer() {
+        activeBugs.forEach { it.animator?.cancel() }
+        activeBugs.clear()
         container.removeAllViews()
+        if (::pool.isInitialized) pool.clear()
     }
 
-    private fun loadSettings() {
-        val prefs = requireContext().getSharedPreferences("game_prefs", Context.MODE_PRIVATE)
-        speed = prefs.getInt("speed", 5).coerceIn(1, 10)
-        maxBugs = prefs.getInt("max_bugs", 10).coerceIn(1, 50)
-        bonusInterval = prefs.getInt("bonus_interval", 15).coerceIn(1, 60)
-        roundDuration = prefs.getInt("round_duration", 60).coerceIn(5, 300)
-    }
-
-    private fun getSpawnDelayMs(): Long {
-        val normalized = (speed - 1) / 9f
-        return (1000L - (900L * normalized)).toLong()
-    }
-
-    private fun getBugFlightDurationMs(): Long {
-        val normalized = (speed - 1) / 9f
-        return (4000L - (3200L * normalized)).toLong()
-    }
+    // Игровой цикл
 
     private fun startGame() {
-        score = 0
-        misses = 0
-        timeLeft = roundDuration
+        scoreTracker.reset()
+        timeLeft = config.roundDuration
         isGameRunning = true
 
-        tvScore.text = "Очки: 0"
+        updateScoreUI()
         tvMisses.text = "Промахи: 0"
         tvTimer.text = "Время: $timeLeft"
         tvBonus.text = "Бонус: -"
 
+        // Таймер раунда
         timerJob = CoroutineScope(Dispatchers.Main).launch {
             while (timeLeft > 0 && isGameRunning) {
                 delay(1000L)
@@ -157,27 +177,29 @@ class GameFragment : Fragment() {
             endGame()
         }
 
+        // Спавн жуков
         gameLoop = object : Runnable {
             override fun run() {
                 if (isGameRunning) {
-                    if (container.childCount < maxBugs) {
-                        spawnBug(isBonus = false)
+                    if (activeBugs.size < config.maxBugs) {
+                        spawnAndAnimate()
                     }
-                    handler.postDelayed(this, getSpawnDelayMs())
+                    handler.postDelayed(this, config.spawnDelayMs())
                 }
             }
         }
         handler.post(gameLoop!!)
 
+        // Спавн молотков
         bonusLoop = object : Runnable {
             override fun run() {
                 if (isGameRunning) {
-                    spawnBug(isBonus = true)
-                    handler.postDelayed(this, bonusInterval * 1000L)
+                    hammer.activate()
+                    handler.postDelayed(this, config.bonusInterval * 1000L)
                 }
             }
         }
-        handler.postDelayed(bonusLoop!!, bonusInterval * 1000L)
+        handler.postDelayed(bonusLoop!!, config.bonusInterval * 1000L)
     }
 
     private fun stopGame() {
@@ -185,104 +207,99 @@ class GameFragment : Fragment() {
         gameLoop?.let { handler.removeCallbacks(it) }
         bonusLoop?.let { handler.removeCallbacks(it) }
         timerJob?.cancel()
+        if (::hammer.isInitialized) hammer.reset()
         clearContainer()
-    }
-
-    @SuppressLint("ClickableViewAccessibility")
-    private fun spawnBug(isBonus: Boolean) {
-        val width = container.width
-        val height = container.height
-        if (width <= bugSize || height <= bugSize) return
-
-        val size = if (isBonus) 150 else bugSize
-        val bug = ImageView(requireContext())
-        bug.setImageResource(
-            if (isBonus) android.R.drawable.star_big_on
-            else android.R.drawable.ic_menu_compass
-        )
-        bug.layoutParams = FrameLayout.LayoutParams(size, size)
-
-        val side = Random.nextInt(4)
-
-        val startX: Float
-        val startY: Float
-        val endX: Float
-        val endY: Float
-
-        when (side) {
-            0 -> {
-                startX = -size.toFloat()
-                startY = Random.nextInt(0, height - size).toFloat()
-                endX = width.toFloat()
-                endY = startY
-            }
-            1 -> {
-                startX = width.toFloat()
-                startY = Random.nextInt(0, height - size).toFloat()
-                endX = -size.toFloat()
-                endY = startY
-            }
-            2 -> {
-                startX = Random.nextInt(0, width - size).toFloat()
-                startY = -size.toFloat()
-                endX = startX
-                endY = height.toFloat()
-            }
-            else -> {
-                startX = Random.nextInt(0, width - size).toFloat()
-                startY = height.toFloat()
-                endX = startX
-                endY = -size.toFloat()
-            }
-        }
-
-        bug.x = startX
-        bug.y = startY
-
-        var isKilled = false
-        bug.setOnClickListener {
-            if (isKilled) return@setOnClickListener
-            isKilled = true
-            val points = if (isBonus) 50 else 10
-            score += points
-            tvScore.text = "Очки: $score"
-            if (isBonus) tvBonus.text = "Бонус: +$points"
-            (bug.animate() as? ObjectAnimator)?.cancel()
-            bug.animate().cancel()
-            container.removeView(bug)
-        }
-
-        container.addView(bug)
-
-        val duration = getBugFlightDurationMs()
-        val animX = ObjectAnimator.ofFloat(bug, "x", startX, endX)
-        val animY = ObjectAnimator.ofFloat(bug, "y", startY, endY)
-        animX.duration = duration
-        animY.duration = duration
-
-        animX.addListener(object : AnimatorListenerAdapter() {
-            override fun onAnimationEnd(animation: Animator) {
-                if (!isKilled) {
-                    container.removeView(bug)
-                }
-            }
-        })
-
-        animX.start()
-        animY.start()
     }
 
     private fun endGame() {
-        isGameRunning = false
-        gameLoop?.let { handler.removeCallbacks(it) }
-        bonusLoop?.let { handler.removeCallbacks(it) }
-        timerJob?.cancel()
-        clearContainer()
-
+        stopGame()
         Toast.makeText(
             context,
-            "Игра окончена! Очки: $score, Промахи: $misses",
+            "Игра окончена! Очки: ${scoreTracker.score}, Промахи: ${scoreTracker.misses}",
             Toast.LENGTH_LONG
         ).show()
+    }
+
+    // Спавн и анимация. Я без понятия как много здесь придётся переписывать
+
+    private fun spawnAndAnimate() {
+        val bug = spawner.spawn(bugSize)
+        activeBugs.add(bug)
+
+        val (tx, ty) = spawner.randomInsidePoint(bugSize)
+        animateSegment(bug, tx, ty, isExit = false)
+    }
+
+    private fun animateSegment(bug: Bug, ex: Float, ey: Float, isExit: Boolean) {
+        val sx = bug.view.x
+        val sy = bug.view.y
+
+        BugAnimator(
+            bug = bug,
+            durationMs = config.segmentDurationMs(),
+            onSegmentEnd = { finishedBug -> onSegmentFinished(finishedBug, isExit) }
+        ).start(sx, sy, ex, ey)
+    }
+
+    private fun onSegmentFinished(bug: Bug, isExit: Boolean) {
+        if (!isGameRunning) return
+
+        if (isExit) {
+            activeBugs.remove(bug)
+            pool.recycle(bug.view)
+            scoreTracker.addMiss()
+            tvMisses.text = "Промахи: ${scoreTracker.misses}"
+            return
+        }
+
+        bug.waypointsLeft--
+
+        if (bug.waypointsLeft <= 0) {
+            val (exitX, exitY) = spawner.randomEdgePoint(
+                container.width, container.height, bug.size
+            )
+            animateSegment(bug, exitX, exitY, isExit = true)
+        } else {
+            val (nx, ny) = spawner.randomInsidePoint(bug.size)
+            animateSegment(bug, nx, ny, isExit = false)
+        }
+    }
+
+    // Тап и попадание TODO: Возможно стоит на будущее сделать обводку границ попадания для тестов размера области попадания
+
+    private fun handleTap(tapX: Float, tapY: Float) {
+        val hitRadius = hammer.hitRadius
+
+        var best: Bug? = null
+        var bestDist = Float.MAX_VALUE
+        for (bug in activeBugs) {
+            val cx = bug.view.x + bug.size / 2f
+            val cy = bug.view.y + bug.size / 2f
+            val d = hypot((tapX - cx).toDouble(), (tapY - cy).toDouble()).toFloat()
+            if (d <= hitRadius && d < bestDist) {
+                best = bug
+                bestDist = d
+            }
+        }
+
+        if (best != null) {
+            killBug(best)
+        } else {
+            scoreTracker.addMiss()
+            tvMisses.text = "Промахи: ${scoreTracker.misses}"
+        }
+    }
+
+    private fun killBug(bug: Bug) {
+        bug.animator?.cancel()
+        bug.animator = null
+        activeBugs.remove(bug)
+        pool.recycle(bug.view)
+        scoreTracker.addKill(10)
+        updateScoreUI()
+    }
+
+    private fun updateScoreUI() {
+        tvScore.text = "Очки: ${scoreTracker.score}"
     }
 }
