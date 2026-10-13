@@ -1,6 +1,7 @@
 package com.example.bugs.ui.game
 
 import android.content.Context
+import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
 
@@ -16,13 +17,18 @@ class BugPool(
 
     /** Получить View: из пула или создать новый */
     fun obtain(): ImageView {
-        return if (pool.isNotEmpty()) {
+        val view = if (pool.isNotEmpty()) {
             pool.removeFirst()
         } else {
             ImageView(context).apply {
                 layoutParams = FrameLayout.LayoutParams(bugSize, bugSize)
+                scaleType = ImageView.ScaleType.FIT_CENTER
             }
         }
+
+        (view.parent as? ViewGroup)?.removeView(view)
+
+        return view
     }
 
     /** Вернуть View в пул */
@@ -33,12 +39,17 @@ class BugPool(
         view.x = 0f
         view.y = 0f
         view.setImageDrawable(null)
-        container.removeView(view)
+
+        (view.parent as? ViewGroup)?.removeView(view)
+
         pool.addLast(view)
     }
 
-    /** Очистить пул. Вот она ваша прославленная авто сборка мусора */
+    /** Очистить пул. Вот она ваша прославленная авто сборка мусора
+     * P. S. Я в ахуе.
+     * */
     fun clear() {
+        pool.forEach { (it.parent as? ViewGroup)?.removeView(it) }
         pool.clear()
     }
 }

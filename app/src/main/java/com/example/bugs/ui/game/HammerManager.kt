@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.view.View
+import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
 import kotlinx.coroutines.CoroutineScope
@@ -34,7 +35,7 @@ class HammerManager(
         get() = if (isActive) HAMMER_RADIUS else BASE_RADIUS
 
     fun spawnHammer() {
-        if (hammerView != null) return // уже есть
+        if (hammerView != null) return
         if (container.width == 0 || container.height == 0) return
 
         val size = 100
@@ -55,6 +56,7 @@ class HammerManager(
             removeHammer()
         }
 
+        (view.parent as? ViewGroup)?.removeView(view)
         container.addView(view)
         hammerView = view
     }

@@ -61,6 +61,13 @@ class GameFragment : Fragment() {
         tvTimer = view.findViewById(R.id.tvTimer)
         tvBonus = view.findViewById(R.id.tvBonus)
 
+        container.post {
+            if (isGameRunning) {
+                scheduleGameLoop()
+                scheduleBonusLoop()
+            }
+        }
+
         container.setOnTouchListener { _, event ->
             if (event.action == MotionEvent.ACTION_DOWN && isGameRunning && !isPaused) {
                 handleTap(event.x, event.y)
@@ -227,8 +234,13 @@ class GameFragment : Fragment() {
         tvBonus.text = "Бонус: -"
 
         scheduleTimer()
-        scheduleGameLoop()
-        scheduleBonusLoop()
+
+        container.post {
+            if (isGameRunning && !isPaused) {
+                scheduleGameLoop()
+                scheduleBonusLoop()
+            }
+        }
     }
 
     private fun stopGame() {
@@ -253,7 +265,7 @@ class GameFragment : Fragment() {
     // Спавн и анимация
 
     private fun spawnAndAnimate() {
-        val bug = spawner.spawn(bugSize)
+        val bug = spawner.spawn(bugSize) ?: return
         activeBugs.add(bug)
         val (tx, ty) = spawner.randomInsidePoint(bugSize)
         animateSegment(bug, tx, ty, isExit = false)

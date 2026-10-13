@@ -29,7 +29,6 @@ class BugAnimator(
             Pair(0f, 0f)
         }
 
-        // Начальный поворот
         view.rotation = TrajectoryMath.angle(sx, sy, ex, ey)
 
         val animator = ValueAnimator.ofFloat(0f, 1f).apply {
@@ -38,6 +37,7 @@ class BugAnimator(
         }
 
         animator.addUpdateListener { va ->
+            if (!view.isAttachedToWindow) return@addUpdateListener
             val t = va.animatedValue as Float
             val (x, y) = when (trajectory) {
                 Trajectory.LINEAR -> TrajectoryMath.linear(sx, sy, ex, ey, t)
@@ -46,10 +46,8 @@ class BugAnimator(
             }
             view.translationX = x
             view.translationY = y
-
             bug.currentX = x
             bug.currentY = y
-
 
             if (trajectory != Trajectory.LINEAR) {
                 val t2 = (t + 0.01f).coerceAtMost(1f)
