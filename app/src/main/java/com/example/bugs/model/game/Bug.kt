@@ -10,5 +10,9 @@ data class Bug(
     var animator: ValueAnimator? = null,
     var color: Int = 0,
     var currentX: Float = 0f,
-    var currentY: Float = 0f
+    var currentY: Float = 0f,
+    var isDead: Boolean = false,
+    var targetX: Float = 0f,
+    var targetY: Float = 0f,
+    var isExitSegment: Boolean = false
 )

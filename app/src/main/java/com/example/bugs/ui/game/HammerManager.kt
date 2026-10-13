@@ -95,7 +95,7 @@ class HammerManager(
     }
 
     companion object {
-        const val BASE_RADIUS = 60f
-        const val HAMMER_RADIUS = 180f
+        const val BASE_RADIUS = 90f
+        const val HAMMER_RADIUS = BASE_RADIUS * 3
     }
 }

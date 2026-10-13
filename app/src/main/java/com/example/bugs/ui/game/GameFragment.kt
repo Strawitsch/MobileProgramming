@@ -1,6 +1,8 @@
 package com.example.bugs.ui.game
 
 import android.content.Context
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -23,6 +25,7 @@ import kotlin.math.hypot
 
 class GameFragment : Fragment() {
 
+    private lateinit var hitIndicator: View
     private lateinit var container: FrameLayout
     private lateinit var tvScore: TextView
     private lateinit var tvMisses: TextView
@@ -56,6 +59,19 @@ class GameFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         container = view.findViewById(R.id.gameContainer)
+
+        hitIndicator = View(requireContext()).apply {
+            layoutParams = FrameLayout.LayoutParams(0, 0)
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setStroke(6, Color.parseColor("#FF5722"))
+                setColor(Color.parseColor("#40FF5722"))
+            }
+            elevation = 100f
+            visibility = View.INVISIBLE
+        }
+        container.addView(hitIndicator)
+
         tvScore = view.findViewById(R.id.tvScore)
         tvMisses = view.findViewById(R.id.tvMisses)
         tvTimer = view.findViewById(R.id.tvTimer)
@@ -111,10 +127,8 @@ class GameFragment : Fragment() {
         if (!isGameRunning) return
         isPaused = true
 
-        // Останавливаем все аниматоры жуков
         activeBugs.forEach { it.animator?.pause() }
 
-        // Останавливаем спавн новых
         gameLoop?.let { handler.removeCallbacks(it) }
         bonusLoop?.let { handler.removeCallbacks(it) }
         timerJob?.cancel()
@@ -123,10 +137,8 @@ class GameFragment : Fragment() {
     private fun resumeGame() {
         isPaused = false
 
-        // Возобновляем аниматоры
         activeBugs.forEach { it.animator?.resume() }
 
-        // Запускаем спавн
         scheduleGameLoop()
         scheduleBonusLoop()
         scheduleTimer()
@@ -214,9 +226,21 @@ class GameFragment : Fragment() {
     }
 
     private fun clearContainer() {
-        activeBugs.forEach { it.animator?.cancel() }
+        activeBugs.forEach { bug ->
+            bug.animator?.cancel()
+            bug.animator = null
+            bug.isDead = true
+            (bug.view.parent as? ViewGroup)?.removeView(bug.view)
+        }
         activeBugs.clear()
-        container.removeAllViews()
+
+        for (i in container.childCount - 1 downTo 0) {
+            val child = container.getChildAt(i)
+            if (child !== hitIndicator) {
+                container.removeViewAt(i)
+            }
+        }
+
         if (::pool.isInitialized) pool.clear()
     }
 
@@ -284,8 +308,10 @@ class GameFragment : Fragment() {
 
     private fun onSegmentFinished(bug: Bug, isExit: Boolean) {
         if (!isGameRunning || isPaused) return
+        if (bug.isDead) return
 
         if (isExit) {
+            bug.isDead = true
             activeBugs.remove(bug)
             pool.recycle(bug.view)
             scoreTracker.addMiss()
@@ -311,27 +337,55 @@ class GameFragment : Fragment() {
     private fun handleTap(tapX: Float, tapY: Float) {
         val hitRadius = hammer.hitRadius
 
-        var best: Bug? = null
-        var bestDist = Float.MAX_VALUE
+        showHitIndicator(tapX, tapY, hitRadius)
+
+        val hitBugs = mutableListOf<Bug>()
         for (bug in activeBugs) {
+            if (bug.isDead) continue
             val cx = bug.currentX + bug.size / 2f
             val cy = bug.currentY + bug.size / 2f
             val d = hypot((tapX - cx).toDouble(), (tapY - cy).toDouble()).toFloat()
-            if (d <= hitRadius && d < bestDist) {
-                best = bug
-                bestDist = d
+            if (d <= hitRadius) {
+                hitBugs.add(bug)
             }
         }
 
-        if (best != null) {
-            killBug(best)
+        if (hitBugs.isNotEmpty()) {
+            hitBugs.forEach { killBug(it) }
         } else {
             scoreTracker.addMiss()
             tvMisses.text = "Промахи: ${scoreTracker.misses}"
         }
     }
 
+    private fun showHitIndicator(x: Float, y: Float, radius: Float) {
+        val size = (radius * 2).toInt()
+
+        val lp = hitIndicator.layoutParams as FrameLayout.LayoutParams
+        lp.width = size
+        lp.height = size
+        hitIndicator.layoutParams = lp
+
+        hitIndicator.translationX = x - radius
+        hitIndicator.translationY = y - radius
+
+        hitIndicator.visibility = View.VISIBLE
+        hitIndicator.alpha = 1f
+        hitIndicator.bringToFront()
+
+        hitIndicator.animate().cancel()
+        hitIndicator.animate()
+            .alpha(0f)
+            .setDuration(300L)
+            .withEndAction {
+                hitIndicator.visibility = View.INVISIBLE
+            }
+            .start()
+    }
+
     private fun killBug(bug: Bug) {
+        if (bug.isDead) return
+        bug.isDead = true
         bug.animator?.cancel()
         bug.animator = null
         activeBugs.remove(bug)

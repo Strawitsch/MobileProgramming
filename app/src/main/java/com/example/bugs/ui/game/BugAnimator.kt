@@ -22,6 +22,7 @@ class BugAnimator(
         ex: Float, ey: Float
     ) {
         val view = bug.view
+        if (bug.isDead) return
         val trajectory = Trajectory.random()
         val control = if (trajectory == Trajectory.BEZIER) {
             TrajectoryMath.randomControl(sx, sy, ex, ey)
@@ -31,10 +32,17 @@ class BugAnimator(
 
         view.rotation = TrajectoryMath.angle(sx, sy, ex, ey)
 
+        view.translationX = sx
+        view.translationY = sy
+        bug.currentX = sx
+        bug.currentY = sy
+
         val animator = ValueAnimator.ofFloat(0f, 1f).apply {
             this.duration = durationMs
             this.interpolator = LinearInterpolator()
         }
+
+        var cancelled = false
 
         animator.addUpdateListener { va ->
             if (!view.isAttachedToWindow) return@addUpdateListener
@@ -60,8 +68,14 @@ class BugAnimator(
         }
 
         animator.addListener(object : AnimatorListenerAdapter() {
+            override fun onAnimationCancel(animation: Animator) {
+                cancelled = true
+            }
+
             override fun onAnimationEnd(animation: Animator) {
                 bug.animator = null
+                if (cancelled) return
+                if (bug.isDead) return
                 onSegmentEnd(bug)
             }
         })
