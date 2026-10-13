@@ -3,6 +3,7 @@ package com.example.bugs.ui.game
 import android.graphics.drawable.ColorDrawable
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import com.example.bugs.R
 import com.example.bugs.model.game.Bug
 import com.example.bugs.model.game.BugColor
 import kotlin.random.Random
@@ -29,8 +30,7 @@ class BugSpawner(
         (view.parent as? ViewGroup)?.removeView(view)
 
         val color = BugColor.random()
-        view.setImageDrawable(ColorDrawable(color))
-        // TODO: заменить на setImageResource(R.drawable.bug_X)
+        view.setImageResource(R.drawable.bug_X)
 
         val (startX, startY) = randomEdgePoint(width, height, size)
 
