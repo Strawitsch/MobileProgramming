@@ -37,6 +37,7 @@ class GameFragment : Fragment() {
     private lateinit var tvTimer: TextView
     private lateinit var tvBonus: TextView
 
+    private lateinit var sound: SoundManager
     private lateinit var config: GameConfig
     private lateinit var pool: BugPool
     private lateinit var spawner: BugSpawner
@@ -63,6 +64,8 @@ class GameFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        sound = SoundManager(requireContext())
+
         container = view.findViewById(R.id.gameContainer)
 
         hitIndicator = View(requireContext()).apply {
@@ -84,6 +87,9 @@ class GameFragment : Fragment() {
         btnPlay = view.findViewById(R.id.btnPlay)
         btnPause = view.findViewById(R.id.btnPause)
 
+        config = GameConfig.load(requireContext())
+        initSubsystems()
+
         container.post {
             if (isGameRunning) {
                 scheduleGameLoop()
@@ -99,14 +105,17 @@ class GameFragment : Fragment() {
         }
 
         btnPlay.setOnClickListener {
+            if (!isUserRegistered()) {
+                Toast.makeText(context, "Сначала зарегистрируйтесь", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
             if (!isGameRunning && roundFinished) {
+                reloadGameConfig()
                 startNewRound()
             }
         }
 
-        btnPause.setOnClickListener {
-            togglePause()
-        }
+        btnPause.setOnClickListener { togglePause() }
     }
 
     override fun onResume() {
@@ -115,12 +124,14 @@ class GameFragment : Fragment() {
         if (!isUserRegistered()) {
             showRegistrationRequired()
             updateButtonState(playEnabled = false, pauseEnabled = false, pauseText = "Пауза")
+            lockNavigation(false)
             return
         }
 
-        if (isGameRunning && !isPaused) {
-            pauseGame()
-        }
+        reloadGameConfig()
+
+        updateButtonState(playEnabled = true, pauseEnabled = false, pauseText = "Пауза")
+        lockNavigation(false)
     }
 
     override fun onPause() {
@@ -138,6 +149,13 @@ class GameFragment : Fragment() {
 
     private fun lockNavigation(locked: Boolean) {
         (activity as? MainActivity)?.lockNavigation(locked)
+    }
+
+    private fun reloadGameConfig() {
+        clearContainer()          // убираем старых жуков
+        if (::pool.isInitialized) pool.clear()
+        config = GameConfig.load(requireContext())
+        initSubsystems()
     }
 
     // Пауза / продолжение
@@ -257,11 +275,13 @@ class GameFragment : Fragment() {
     // Инициализация
 
     private fun initSubsystems() {
+        if (::pool.isInitialized) pool.clear()
         pool = BugPool(requireContext(), container, bugSize)
         spawner = BugSpawner(container, pool, config) {
             scoreTracker.addMiss()
             tvMisses.text = "Промахи: ${scoreTracker.misses}"
         }
+        if (::hammer.isInitialized) hammer.reset()
         hammer = HammerManager(
             context = requireContext(),
             container = container,
@@ -296,6 +316,9 @@ class GameFragment : Fragment() {
         tvMisses.text = "Промахи: -"
         tvTimer.text = "Время: -"
         tvBonus.text = "Бонус: -"
+
+        btnPlay.isEnabled = false
+        btnPause.isEnabled = false
     }
 
     private fun clearContainer() {
