@@ -32,6 +32,7 @@ class BugPool(
         view.alpha = 1f
         view.x = 0f
         view.y = 0f
+        view.setImageDrawable(null)
         container.removeView(view)
         pool.addLast(view)
     }

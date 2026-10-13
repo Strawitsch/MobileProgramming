@@ -4,7 +4,6 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.view.animation.LinearInterpolator
-import android.widget.ImageView
 import com.example.bugs.model.game.Bug
 import com.example.bugs.model.game.Trajectory
 import com.example.bugs.model.game.TrajectoryMath
@@ -45,8 +44,11 @@ class BugAnimator(
                 Trajectory.BEZIER -> TrajectoryMath.bezier(sx, sy, ex, ey, t, control)
                 Trajectory.SEMICIRCLE -> TrajectoryMath.semicircle(sx, sy, ex, ey, t)
             }
-            view.x = x
-            view.y = y
+            view.translationX = x
+            view.translationY = y
+
+            bug.currentX = x
+            bug.currentY = y
 
 
             if (trajectory != Trajectory.LINEAR) {

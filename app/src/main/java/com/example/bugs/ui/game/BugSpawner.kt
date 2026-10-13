@@ -21,6 +21,7 @@ class BugSpawner(
     /** Спавн нового жука */
     fun spawn(size: Int): Bug {
         val view = pool.obtain()
+        val color = BugColor.random()
         // TODO: заменить на setImageResource(R.drawable.bug_X). Придётся переписать код для рандомизации картинок
         view.setImageDrawable(ColorDrawable(BugColor.random()))
 
@@ -28,8 +29,8 @@ class BugSpawner(
         val height = container.height
 
         val (startX, startY) = randomEdgePoint(width, height, size)
-        view.x = startX
-        view.y = startY
+        view.translationX = startX
+        view.translationY = startY
 
         container.addView(view)
 
