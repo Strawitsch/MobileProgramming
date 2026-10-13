@@ -75,11 +75,11 @@
             android:layout_marginEnd="12dp" />
 
         <Button
-            android:id="@+id/btnPause"
+            android:id="@+id/btnResume"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Пауза"
-            android:enabled="false" />
+            android:text="Возобновить"
+            android:visibility="gone" />
     </LinearLayout>
 
 </FrameLayout>

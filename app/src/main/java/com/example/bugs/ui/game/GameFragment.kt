@@ -12,6 +12,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.FrameLayout
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -27,8 +28,10 @@ import kotlin.math.hypot
 
 class GameFragment : Fragment() {
 
+    private lateinit var controlPanel: LinearLayout
     private lateinit var btnPlay: Button
-    private lateinit var btnPause: Button
+    private lateinit var btnResume: Button
+    private var pausedByLifecycle = false
     private var roundFinished = true
     private lateinit var hitIndicator: View
     private lateinit var container: FrameLayout
@@ -84,8 +87,9 @@ class GameFragment : Fragment() {
         tvMisses = view.findViewById(R.id.tvMisses)
         tvTimer = view.findViewById(R.id.tvTimer)
         tvBonus = view.findViewById(R.id.tvBonus)
+        controlPanel = view.findViewById(R.id.controlPanel)
         btnPlay = view.findViewById(R.id.btnPlay)
-        btnPause = view.findViewById(R.id.btnPause)
+        btnResume = view.findViewById(R.id.btnResume)
 
         config = GameConfig.load(requireContext())
         initSubsystems()
@@ -115,7 +119,10 @@ class GameFragment : Fragment() {
             }
         }
 
-        btnPause.setOnClickListener { togglePause() }
+        btnResume.setOnClickListener {
+            pausedByLifecycle = false
+            resumeGame()
+        }
     }
 
     override fun onResume() {
@@ -123,15 +130,17 @@ class GameFragment : Fragment() {
 
         if (!isUserRegistered()) {
             showRegistrationRequired()
-            updateButtonState(playEnabled = false, pauseEnabled = false, pauseText = "Пауза")
-            lockNavigation(false)
             return
         }
 
-        reloadGameConfig()
-
-        updateButtonState(playEnabled = true, pauseEnabled = false, pauseText = "Пауза")
-        lockNavigation(false)
+        if (isGameRunning && pausedByLifecycle) {
+            showPausedUI()
+            lockNavigation(false)
+        } else if (!isGameRunning) {
+            reloadGameConfig()
+            showIdleUI()
+            lockNavigation(false)
+        }
     }
 
     override fun onPause() {
@@ -152,10 +161,27 @@ class GameFragment : Fragment() {
     }
 
     private fun reloadGameConfig() {
-        clearContainer()          // убираем старых жуков
+        clearContainer()
         if (::pool.isInitialized) pool.clear()
         config = GameConfig.load(requireContext())
         initSubsystems()
+    }
+
+    private fun showIdleUI() {
+        controlPanel.visibility = View.VISIBLE
+        btnPlay.visibility = View.VISIBLE
+        btnPlay.isEnabled = true
+        btnResume.visibility = View.GONE
+    }
+
+    private fun showPlayingUI() {
+        controlPanel.visibility = View.GONE
+    }
+
+    private fun showPausedUI() {
+        controlPanel.visibility = View.VISIBLE
+        btnPlay.visibility = View.GONE
+        btnResume.visibility = View.VISIBLE
     }
 
     // Пауза / продолжение
@@ -165,6 +191,7 @@ class GameFragment : Fragment() {
         timeLeft = config.roundDuration
         isGameRunning = true
         isPaused = false
+        pausedByLifecycle = false
         roundFinished = false
 
         updateScoreUI()
@@ -183,23 +210,14 @@ class GameFragment : Fragment() {
             }
         }
 
-        updateButtonState(playEnabled = false, pauseEnabled = true, pauseText = "Пауза")
+        showPlayingUI()
         lockNavigation(true)
-    }
-
-    private fun togglePause() {
-        if (!isGameRunning) return
-
-        if (isPaused) {
-            resumeGame()
-        } else {
-            pauseGame()
-        }
     }
 
     private fun pauseGame() {
         if (!isGameRunning || isPaused) return
         isPaused = true
+        pausedByLifecycle = true
 
         sound.stopAll()
 
@@ -213,9 +231,8 @@ class GameFragment : Fragment() {
         bonusLoop?.let { handler.removeCallbacks(it) }
         timerJob?.cancel()
 
-        updateButtonState(playEnabled = false, pauseEnabled = true, pauseText = "Продолжить")
+        showPausedUI()
         lockNavigation(false)
-        Toast.makeText(context, "Пауза", Toast.LENGTH_SHORT).show()
     }
 
     private fun resumeGame() {
@@ -231,7 +248,7 @@ class GameFragment : Fragment() {
         scheduleGameLoop()
         scheduleBonusLoop()
 
-        updateButtonState(playEnabled = false, pauseEnabled = true, pauseText = "Пауза")
+        showPlayingUI()
         lockNavigation(true)
     }
 
@@ -291,9 +308,6 @@ class GameFragment : Fragment() {
         )
     }
 
-    private fun loadSettings() {
-        config = GameConfig.load(requireContext())
-    }
 
     private fun isUserRegistered(): Boolean {
         val prefs = requireContext().getSharedPreferences("game_prefs", Context.MODE_PRIVATE)
@@ -318,7 +332,6 @@ class GameFragment : Fragment() {
         tvBonus.text = "Бонус: -"
 
         btnPlay.isEnabled = false
-        btnPause.isEnabled = false
     }
 
     private fun clearContainer() {
@@ -336,36 +349,15 @@ class GameFragment : Fragment() {
                 container.removeViewAt(i)
             }
         }
-
         if (::pool.isInitialized) pool.clear()
     }
 
     // Запуск / остановка
 
-    private fun startGame() {
-        scoreTracker.reset()
-        timeLeft = config.roundDuration
-        isGameRunning = true
-        isPaused = false
-
-        updateScoreUI()
-        tvMisses.text = "Промахи: 0"
-        tvTimer.text = "Время: $timeLeft"
-        tvBonus.text = "Бонус: -"
-
-        scheduleTimer()
-
-        container.post {
-            if (isGameRunning && !isPaused) {
-                scheduleGameLoop()
-                scheduleBonusLoop()
-            }
-        }
-    }
-
     private fun stopGame() {
         isGameRunning = false
         isPaused = false
+        pausedByLifecycle = false
         roundFinished = true
 
         sound.stopAll()
@@ -380,17 +372,17 @@ class GameFragment : Fragment() {
     private fun endGame() {
         isGameRunning = false
         isPaused = false
+        pausedByLifecycle = false
         roundFinished = true
 
         sound.stopAll()
-
         gameLoop?.let { handler.removeCallbacks(it) }
         bonusLoop?.let { handler.removeCallbacks(it) }
         timerJob?.cancel()
         if (::hammer.isInitialized) hammer.reset()
         clearContainer()
 
-        updateButtonState(playEnabled = true, pauseEnabled = false, pauseText = "Пауза")
+        showIdleUI()
         lockNavigation(false)
 
         Toast.makeText(
@@ -402,11 +394,6 @@ class GameFragment : Fragment() {
 
     // Спавн и анимация
 
-    private fun updateButtonState(playEnabled: Boolean, pauseEnabled: Boolean, pauseText: String) {
-        btnPlay.isEnabled = playEnabled
-        btnPause.isEnabled = pauseEnabled
-        btnPause.text = pauseText
-    }
     private fun spawnAndAnimate() {
         val bug = spawner.spawn(bugSize) ?: return
         activeBugs.add(bug)
