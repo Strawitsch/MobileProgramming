@@ -1,5 +1,6 @@
 package com.example.bugs.ui.registration
 
+import android.annotation.SuppressLint
 import android.app.DatePickerDialog
 import android.content.Context
 import android.os.Bundle
@@ -12,11 +13,11 @@ import com.example.bugs.R
 import com.example.bugs.model.Gender
 import com.example.bugs.model.Player
 import com.example.bugs.model.Zodiac
-import androidx.viewpager2.widget.ViewPager2
 import com.example.bugs.MainActivity
 import com.example.bugs.MainPagerAdapter
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.core.content.edit
 
 class RegistrationFragment : Fragment() {
 
@@ -30,6 +31,7 @@ class RegistrationFragment : Fragment() {
         return inflater.inflate(R.layout.fragment_registration, container, false)
     }
 
+    @SuppressLint("SetTextI18n")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -130,11 +132,11 @@ class RegistrationFragment : Fragment() {
             }
 
             val prefs = requireContext().getSharedPreferences("game_prefs", Context.MODE_PRIVATE)
-            prefs.edit()
-                .putString("player_name", player.fullName)
-                .putInt("player_difficulty", player.difficulty)
-                .putBoolean("is_registered", true)
-                .apply()
+            prefs.edit {
+                putString("player_name", player.fullName)
+                    .putInt("player_difficulty", player.difficulty)
+                    .putBoolean("is_registered", true)
+            }
 
             (activity as? MainActivity)?.let { mainActivity ->
                 val viewPager = mainActivity.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.viewPager)
@@ -150,7 +152,7 @@ class RegistrationFragment : Fragment() {
             cal.time = date
             val check = dateFormat.format(cal.time)
             if (check != text) null else cal
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
     }

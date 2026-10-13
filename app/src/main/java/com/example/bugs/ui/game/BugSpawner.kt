@@ -1,11 +1,11 @@
 package com.example.bugs.ui.game
 
-import android.graphics.drawable.ColorDrawable
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import com.example.bugs.model.game.Bug
 import com.example.bugs.model.game.BugColor
 import kotlin.random.Random
+import androidx.core.graphics.drawable.toDrawable
 
 /**
  * Здесь находится основная логика спавна и ухода жучков за пределом экрана.
@@ -16,7 +16,7 @@ class BugSpawner(
     private val container: FrameLayout,
     private val pool: BugPool,
     private val config: GameConfig,
-    private val onBugMissed: () -> Unit
+    function: () -> Unit,
 ) {
 
     /** Спавн нового жука */
@@ -29,7 +29,7 @@ class BugSpawner(
         (view.parent as? ViewGroup)?.removeView(view)
 
         val color = BugColor.random()
-        view.setImageDrawable(ColorDrawable(color))
+        view.setImageDrawable(color.toDrawable())
         // TODO: заменить на setImageResource(R.drawable.bug_X)
 
         val (startX, startY) = randomEdgePoint(width, height, size)
@@ -69,7 +69,4 @@ class BugSpawner(
         }
     }
 
-    fun onMiss() {
-        onBugMissed()
-    }
 }

@@ -10,7 +10,6 @@ import android.widget.ImageView
  */
 class BugPool(
     private val context: Context,
-    private val container: FrameLayout,
     private val bugSize: Int
 ) {
     private val pool = ArrayDeque<ImageView>()

@@ -21,7 +21,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Очки: 0"
+            android:text="@string/Points_0"
             android:textColor="#FFFFFF"
             android:textSize="16sp"
             android:textStyle="bold" />
@@ -31,7 +31,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Промахи: 0"
+            android:text="@string/Misses_0"
             android:textColor="#FFFFFF"
             android:textSize="16sp"
             android:textStyle="bold" />
@@ -41,7 +41,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Время: 60"
+            android:text="@string/Time_60"
             android:textColor="#FFFFFF"
             android:textSize="16sp"
             android:textStyle="bold" />
@@ -51,7 +51,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Бонус: -"
+            android:text="@string/Bonus"
             android:textColor="#FFEB3B"
             android:textSize="16sp"
             android:textStyle="bold" />
@@ -59,6 +59,7 @@
 
     <LinearLayout
         android:id="@+id/controlPanel"
+        style="?android:attr/buttonBarStyle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
@@ -69,16 +70,18 @@
 
         <Button
             android:id="@+id/btnPlay"
+            style="?android:attr/buttonBarButtonStyle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Играть"
+            android:text="@string/Play"
             android:layout_marginEnd="12dp" />
 
         <Button
             android:id="@+id/btnResume"
+            style="?android:attr/buttonBarButtonStyle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Возобновить"
+            android:text="@string/Resume"
             android:visibility="gone" />
     </LinearLayout>
 

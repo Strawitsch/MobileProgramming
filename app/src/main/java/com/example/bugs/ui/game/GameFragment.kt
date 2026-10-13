@@ -1,7 +1,7 @@
 package com.example.bugs.ui.game
 
+import android.annotation.SuppressLint
 import android.content.Context
-import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.Handler
@@ -25,6 +25,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.hypot
+import androidx.core.graphics.toColorInt
+import kotlin.time.Duration.Companion.milliseconds
 
 class GameFragment : Fragment() {
 
@@ -64,6 +66,7 @@ class GameFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? = inflater.inflate(R.layout.fragment_game, container, false)
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -75,8 +78,8 @@ class GameFragment : Fragment() {
             layoutParams = FrameLayout.LayoutParams(0, 0)
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setStroke(6, Color.parseColor("#FF5722"))
-                setColor(Color.parseColor("#40FF5722"))
+                setStroke(6, "#FF5722".toColorInt())
+                setColor("#40FF5722".toColorInt())
             }
             elevation = 100f
             visibility = View.INVISIBLE
@@ -186,6 +189,7 @@ class GameFragment : Fragment() {
 
     // Пауза / продолжение
 
+    @SuppressLint("SetTextI18n")
     private fun startNewRound() {
         scoreTracker.reset()
         timeLeft = config.roundDuration
@@ -252,10 +256,11 @@ class GameFragment : Fragment() {
         lockNavigation(true)
     }
 
+    @SuppressLint("SetTextI18n")
     private fun scheduleTimer() {
         timerJob = CoroutineScope(Dispatchers.Main).launch {
             while (timeLeft > 0 && isGameRunning && !isPaused) {
-                delay(1000L)
+                delay(1000L.milliseconds)
                 timeLeft--
                 tvTimer.text = "Время: $timeLeft"
             }
@@ -291,9 +296,10 @@ class GameFragment : Fragment() {
 
     // Инициализация
 
+    @SuppressLint("SetTextI18n")
     private fun initSubsystems() {
         if (::pool.isInitialized) pool.clear()
-        pool = BugPool(requireContext(), container, bugSize)
+        pool = BugPool(requireContext(), bugSize)
         spawner = BugSpawner(container, pool, config) {
             scoreTracker.addMiss()
             tvMisses.text = "Промахи: ${scoreTracker.misses}"
@@ -412,6 +418,7 @@ class GameFragment : Fragment() {
         ).start(sx, sy, ex, ey)
     }
 
+    @SuppressLint("SetTextI18n")
     private fun onSegmentFinished(bug: Bug, isExit: Boolean) {
         if (!isGameRunning || isPaused) return
         if (bug.isDead) return
@@ -440,6 +447,7 @@ class GameFragment : Fragment() {
 
     // Тап
 
+    @SuppressLint("SetTextI18n")
     private fun handleTap(tapX: Float, tapY: Float) {
         val hitRadius = hammer.hitRadius
 
@@ -500,6 +508,7 @@ class GameFragment : Fragment() {
         updateScoreUI()
     }
 
+    @SuppressLint("SetTextI18n")
     private fun updateScoreUI() {
         tvScore.text = "Очки: ${scoreTracker.score}"
     }

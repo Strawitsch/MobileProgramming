@@ -1,5 +1,6 @@
 package com.example.bugs.ui.settings
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -12,6 +13,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.example.bugs.R
+import androidx.core.content.edit
 
 class SettingsFragment : Fragment() {
 
@@ -22,6 +24,7 @@ class SettingsFragment : Fragment() {
         return inflater.inflate(R.layout.fragment_settings, container, false)
     }
 
+    @SuppressLint("SetTextI18n")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -60,12 +63,12 @@ class SettingsFragment : Fragment() {
             etBonusInterval.setText(bonusInterval.toString())
             etRoundDuration.setText(roundDuration.toString())
 
-            prefs.edit()
-                .putInt("speed", speed)
-                .putInt("max_bugs", maxBugs)
-                .putInt("bonus_interval", bonusInterval)
-                .putInt("round_duration", roundDuration)
-                .apply()
+            prefs.edit {
+                putInt("speed", speed)
+                    .putInt("max_bugs", maxBugs)
+                    .putInt("bonus_interval", bonusInterval)
+                    .putInt("round_duration", roundDuration)
+            }
 
             Toast.makeText(context, "Настройки сохранены", Toast.LENGTH_SHORT).show()
         }
