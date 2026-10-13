@@ -7,6 +7,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
+import com.example.bugs.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -41,8 +42,7 @@ class HammerManager(
         val size = 100
         val view = ImageView(context).apply {
             layoutParams = FrameLayout.LayoutParams(size, size)
-            // TODO: заменить на setImageResource(R.drawable.hammer)
-            setImageDrawable(ColorDrawable(Color.parseColor("#8B4513")))
+            setImageResource(R.drawable.hammer)
             scaleType = ImageView.ScaleType.FIT_CENTER
         }
 
