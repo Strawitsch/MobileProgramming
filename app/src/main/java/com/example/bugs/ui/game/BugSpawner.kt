@@ -30,7 +30,17 @@ class BugSpawner(
         (view.parent as? ViewGroup)?.removeView(view)
 
         val color = BugColor.random()
-        view.setImageResource(R.drawable.bug_X)
+
+        val bugImages = intArrayOf(
+            R.drawable.bug_1,
+            R.drawable.bug_2,
+            R.drawable.bug_3,
+            R.drawable.bug_4,
+            R.drawable.bug_5
+        )
+
+        val random = bugImages.random()
+        view.setImageResource(random)
 
         val (startX, startY) = randomEdgePoint(width, height, size)
 

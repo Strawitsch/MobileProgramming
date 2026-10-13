@@ -16,7 +16,6 @@ class SoundManager(private val context: Context) {
     private var bonusSoundId = 0
 
     fun init() {
-        // TODO: заменить на реальные ресурсы R.raw.bug_move и т.д.
         movePlayer = null
         soundPool = null
     }
