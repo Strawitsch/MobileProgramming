@@ -10,10 +10,12 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import com.example.bugs.MainActivity
 import com.example.bugs.R
 import com.example.bugs.model.game.Bug
 import kotlinx.coroutines.CoroutineScope
@@ -25,6 +27,9 @@ import kotlin.math.hypot
 
 class GameFragment : Fragment() {
 
+    private lateinit var btnPlay: Button
+    private lateinit var btnPause: Button
+    private var roundFinished = true
     private lateinit var hitIndicator: View
     private lateinit var container: FrameLayout
     private lateinit var tvScore: TextView
@@ -76,6 +81,8 @@ class GameFragment : Fragment() {
         tvMisses = view.findViewById(R.id.tvMisses)
         tvTimer = view.findViewById(R.id.tvTimer)
         tvBonus = view.findViewById(R.id.tvBonus)
+        btnPlay = view.findViewById(R.id.btnPlay)
+        btnPause = view.findViewById(R.id.btnPause)
 
         container.post {
             if (isGameRunning) {
@@ -90,58 +97,124 @@ class GameFragment : Fragment() {
             }
             true
         }
+
+        btnPlay.setOnClickListener {
+            if (!isGameRunning && roundFinished) {
+                startNewRound()
+            }
+        }
+
+        btnPause.setOnClickListener {
+            togglePause()
+        }
     }
 
     override fun onResume() {
         super.onResume()
+
         if (!isUserRegistered()) {
-            stopGame()
             showRegistrationRequired()
+            updateButtonState(playEnabled = false, pauseEnabled = false, pauseText = "Пауза")
             return
         }
 
-        if (isGameRunning && isPaused) {
-            resumeGame()
-        } else {
-            stopGame()
-            clearContainer()
-            loadSettings()
-            initSubsystems()
-            startGame()
+        if (isGameRunning && !isPaused) {
+            pauseGame()
         }
     }
 
     override fun onPause() {
         super.onPause()
-        pauseGame()
+        if (isGameRunning && !isPaused) {
+            pauseGame()
+        }
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         stopGame()
+        if (::sound.isInitialized) sound.release()
+    }
+
+    private fun lockNavigation(locked: Boolean) {
+        (activity as? MainActivity)?.lockNavigation(locked)
     }
 
     // Пауза / продолжение
 
-    private fun pauseGame() {
+    private fun startNewRound() {
+        scoreTracker.reset()
+        timeLeft = config.roundDuration
+        isGameRunning = true
+        isPaused = false
+        roundFinished = false
+
+        updateScoreUI()
+        tvMisses.text = "Промахи: 0"
+        tvTimer.text = "Время: $timeLeft"
+        tvBonus.text = "Бонус: -"
+
+        sound.init()
+        sound.startMoveSound()
+
+        scheduleTimer()
+        container.post {
+            if (isGameRunning && !isPaused) {
+                scheduleGameLoop()
+                scheduleBonusLoop()
+            }
+        }
+
+        updateButtonState(playEnabled = false, pauseEnabled = true, pauseText = "Пауза")
+        lockNavigation(true)
+    }
+
+    private fun togglePause() {
         if (!isGameRunning) return
+
+        if (isPaused) {
+            resumeGame()
+        } else {
+            pauseGame()
+        }
+    }
+
+    private fun pauseGame() {
+        if (!isGameRunning || isPaused) return
         isPaused = true
 
-        activeBugs.forEach { it.animator?.pause() }
+        sound.stopAll()
+
+        activeBugs.forEach { bug ->
+            bug.animator?.cancel()
+            bug.animator = null
+            bug.isDead = true
+        }
 
         gameLoop?.let { handler.removeCallbacks(it) }
         bonusLoop?.let { handler.removeCallbacks(it) }
         timerJob?.cancel()
+
+        updateButtonState(playEnabled = false, pauseEnabled = true, pauseText = "Продолжить")
+        lockNavigation(false)
+        Toast.makeText(context, "Пауза", Toast.LENGTH_SHORT).show()
     }
 
     private fun resumeGame() {
+        if (!isGameRunning || !isPaused) return
         isPaused = false
 
-        activeBugs.forEach { it.animator?.resume() }
+        sound.startMoveSound()
 
+        activeBugs.forEach { pool.recycle(it.view) }
+        activeBugs.clear()
+
+        scheduleTimer()
         scheduleGameLoop()
         scheduleBonusLoop()
-        scheduleTimer()
+
+        updateButtonState(playEnabled = false, pauseEnabled = true, pauseText = "Пауза")
+        lockNavigation(true)
     }
 
     private fun scheduleTimer() {
@@ -270,15 +343,33 @@ class GameFragment : Fragment() {
     private fun stopGame() {
         isGameRunning = false
         isPaused = false
+        roundFinished = true
+
+        sound.stopAll()
         gameLoop?.let { handler.removeCallbacks(it) }
         bonusLoop?.let { handler.removeCallbacks(it) }
         timerJob?.cancel()
         if (::hammer.isInitialized) hammer.reset()
         clearContainer()
+        lockNavigation(false)
     }
 
     private fun endGame() {
-        stopGame()
+        isGameRunning = false
+        isPaused = false
+        roundFinished = true
+
+        sound.stopAll()
+
+        gameLoop?.let { handler.removeCallbacks(it) }
+        bonusLoop?.let { handler.removeCallbacks(it) }
+        timerJob?.cancel()
+        if (::hammer.isInitialized) hammer.reset()
+        clearContainer()
+
+        updateButtonState(playEnabled = true, pauseEnabled = false, pauseText = "Пауза")
+        lockNavigation(false)
+
         Toast.makeText(
             context,
             "Игра окончена! Очки: ${scoreTracker.score}, Промахи: ${scoreTracker.misses}",
@@ -288,6 +379,11 @@ class GameFragment : Fragment() {
 
     // Спавн и анимация
 
+    private fun updateButtonState(playEnabled: Boolean, pauseEnabled: Boolean, pauseText: String) {
+        btnPlay.isEnabled = playEnabled
+        btnPause.isEnabled = pauseEnabled
+        btnPause.text = pauseText
+    }
     private fun spawnAndAnimate() {
         val bug = spawner.spawn(bugSize) ?: return
         activeBugs.add(bug)

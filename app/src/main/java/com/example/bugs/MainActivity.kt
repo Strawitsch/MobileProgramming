@@ -12,6 +12,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var viewPager: ViewPager2
     private lateinit var bottomNav: BottomNavigationView
+    private var navigationLocked = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,6 +60,12 @@ class MainActivity : AppCompatActivity() {
             true
         }
     }
+
+    fun lockNavigation(locked: Boolean) {
+        navigationLocked = locked
+        viewPager.isUserInputEnabled = !locked
+    }
+
 
     private fun isUserRegistered(): Boolean {
         val prefs = getSharedPreferences("game_prefs", Context.MODE_PRIVATE)
