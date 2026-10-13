@@ -36,11 +36,11 @@ class SettingsFragment : Fragment() {
 
         seekSpeed.max = 9
         seekSpeed.progress = (prefs.getInt("speed", 5) - 1).coerceIn(0, 9)
-        tvSpeedValue.text = "Скорость: ${seekSpeed.progress + 1}"
+        tvSpeedValue.text = getString(R.string.speed, seekSpeed.progress + 1)
 
         seekSpeed.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                tvSpeedValue.text = "Скорость: ${progress + 1}"
+                tvSpeedValue.text = getString(R.string.speed1, progress + 1)
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
@@ -67,7 +67,7 @@ class SettingsFragment : Fragment() {
                 .putInt("round_duration", roundDuration)
                 .apply()
 
-            Toast.makeText(context, "Настройки сохранены", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, getString(R.string.pref_created_toast), Toast.LENGTH_SHORT).show()
         }
     }
 }

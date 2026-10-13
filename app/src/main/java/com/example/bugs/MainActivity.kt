@@ -39,7 +39,7 @@ class MainActivity : AppCompatActivity() {
                 if (position == MainPagerAdapter.POS_GAME && !isUserRegistered()) {
                     Toast.makeText(
                         this@MainActivity,
-                        "Сначала зарегистрируйтесь на вкладке «Игрок»",
+                        getString(R.string.registration),
                         Toast.LENGTH_SHORT
                     ).show()
                     viewPager.setCurrentItem(MainPagerAdapter.POS_REGISTRATION, true)
@@ -52,7 +52,7 @@ class MainActivity : AppCompatActivity() {
         bottomNav.setOnItemSelectedListener { item ->
             val position = menuIdToPosition(item.itemId)
             if (position == MainPagerAdapter.POS_GAME && !isUserRegistered()) {
-                Toast.makeText(this, "Сначала зарегистрируйтесь", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.registration), Toast.LENGTH_SHORT).show()
                 bottomNav.selectedItemId = positionToMenuId(viewPager.currentItem)
                 return@setOnItemSelectedListener false
             }

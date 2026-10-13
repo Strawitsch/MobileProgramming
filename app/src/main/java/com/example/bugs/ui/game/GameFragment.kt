@@ -110,7 +110,7 @@ class GameFragment : Fragment() {
 
         btnPlay.setOnClickListener {
             if (!isUserRegistered()) {
-                Toast.makeText(context, "Сначала зарегистрируйтесь", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, getString(R.string.reg_message), Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
             if (!isGameRunning && roundFinished) {
@@ -195,9 +195,9 @@ class GameFragment : Fragment() {
         roundFinished = false
 
         updateScoreUI()
-        tvMisses.text = "Промахи: 0"
-        tvTimer.text = "Время: $timeLeft"
-        tvBonus.text = "Бонус: -"
+        tvMisses.text = getString(R.string.misses)
+        tvTimer.text = getString(R.string.timer, timeLeft)
+        tvBonus.text = getString(R.string.bonus)
 
         sound.init()
         sound.startMoveSound()
@@ -257,7 +257,7 @@ class GameFragment : Fragment() {
             while (timeLeft > 0 && isGameRunning && !isPaused) {
                 delay(1000L)
                 timeLeft--
-                tvTimer.text = "Время: $timeLeft"
+                tvTimer.text = getString(R.string.timer_1, timeLeft)
             }
             if (timeLeft <= 0) endGame()
         }
@@ -296,15 +296,15 @@ class GameFragment : Fragment() {
         pool = BugPool(requireContext(), container, bugSize)
         spawner = BugSpawner(container, pool, config) {
             scoreTracker.addMiss()
-            tvMisses.text = "Промахи: ${scoreTracker.misses}"
+            tvMisses.text = getString(R.string.misses1, scoreTracker.misses)
         }
         if (::hammer.isInitialized) hammer.reset()
         hammer = HammerManager(
             context = requireContext(),
             container = container,
             config = config,
-            onTick = { seconds -> tvBonus.text = "МОЛОТОК! (${seconds}с)" },
-            onEnd = { tvBonus.text = "Бонус: -" }
+            onTick = { seconds -> tvBonus.text = getString(R.string.bonus1, seconds) },
+            onEnd = { tvBonus.text = getString(R.string.bonus2) }
         )
     }
 
@@ -317,7 +317,7 @@ class GameFragment : Fragment() {
     private fun showRegistrationRequired() {
         clearContainer()
         val tv = TextView(requireContext()).apply {
-            text = "Сначала зарегистрируйтесь на вкладке «Игрок»"
+            text = context.getString(R.string.reg_message2)
             textSize = 20f
             gravity = android.view.Gravity.CENTER
             layoutParams = FrameLayout.LayoutParams(
@@ -326,10 +326,10 @@ class GameFragment : Fragment() {
             )
         }
         container.addView(tv)
-        tvScore.text = "Очки: -"
-        tvMisses.text = "Промахи: -"
-        tvTimer.text = "Время: -"
-        tvBonus.text = "Бонус: -"
+        tvScore.text = getString(R.string.score)
+        tvMisses.text = getString(R.string.misses2)
+        tvTimer.text = getString(R.string.time)
+        tvBonus.text = getString(R.string.bonus3)
 
         btnPlay.isEnabled = false
     }
@@ -387,7 +387,7 @@ class GameFragment : Fragment() {
 
         Toast.makeText(
             context,
-            "Игра окончена! Очки: ${scoreTracker.score}, Промахи: ${scoreTracker.misses}",
+            getString(R.string.end_game_toast, scoreTracker.score, scoreTracker.misses),
             Toast.LENGTH_LONG
         ).show()
     }
@@ -421,7 +421,7 @@ class GameFragment : Fragment() {
             activeBugs.remove(bug)
             pool.recycle(bug.view)
             scoreTracker.addMiss()
-            tvMisses.text = "Промахи: ${scoreTracker.misses}"
+            tvMisses.text = getString(R.string.misses3, scoreTracker.misses)
             return
         }
 
@@ -460,7 +460,7 @@ class GameFragment : Fragment() {
             hitBugs.forEach { killBug(it) }
         } else {
             scoreTracker.addMiss()
-            tvMisses.text = "Промахи: ${scoreTracker.misses}"
+            tvMisses.text = getString(R.string.misses4, scoreTracker.misses)
         }
     }
 
@@ -501,6 +501,6 @@ class GameFragment : Fragment() {
     }
 
     private fun updateScoreUI() {
-        tvScore.text = "Очки: ${scoreTracker.score}"
+        tvScore.text = getString(R.string.score1, scoreTracker.score)
     }
 }
