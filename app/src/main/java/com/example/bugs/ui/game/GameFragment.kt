@@ -21,32 +21,22 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.hypot
 
-/**
- *  - GameConfig       (настройки)
- *  - BugPool          (переиспользование View)
- *  - BugSpawner       (создание жуков)
- *  - BugAnimator      (анимация сегментов)
- *  - HammerManager    (бонус «молоток»)
- *  - ScoreTracker     (очки и промахи)
- */
 class GameFragment : Fragment() {
 
-    //View'шки
     private lateinit var container: FrameLayout
     private lateinit var tvScore: TextView
     private lateinit var tvMisses: TextView
     private lateinit var tvTimer: TextView
     private lateinit var tvBonus: TextView
 
-    // Подсистемы
     private lateinit var config: GameConfig
     private lateinit var pool: BugPool
     private lateinit var spawner: BugSpawner
     private lateinit var hammer: HammerManager
     private val scoreTracker = ScoreTracker()
 
-    // Состояние раунда
     private var isGameRunning = false
+    private var isPaused = false
     private var timeLeft = 60
     private var timerJob: Job? = null
 
@@ -56,8 +46,6 @@ class GameFragment : Fragment() {
 
     private val activeBugs = mutableListOf<Bug>()
     private val bugSize = 120
-
-    // Lifecycle
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -74,7 +62,7 @@ class GameFragment : Fragment() {
         tvBonus = view.findViewById(R.id.tvBonus)
 
         container.setOnTouchListener { _, event ->
-            if (event.action == MotionEvent.ACTION_DOWN && isGameRunning) {
+            if (event.action == MotionEvent.ACTION_DOWN && isGameRunning && !isPaused) {
                 handleTap(event.x, event.y)
             }
             true
@@ -83,10 +71,16 @@ class GameFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        stopGame()
         if (!isUserRegistered()) {
+            stopGame()
             showRegistrationRequired()
+            return
+        }
+
+        if (isGameRunning && isPaused) {
+            resumeGame()
         } else {
+            stopGame()
             clearContainer()
             loadSettings()
             initSubsystems()
@@ -96,7 +90,7 @@ class GameFragment : Fragment() {
 
     override fun onPause() {
         super.onPause()
-        stopGame()
+        pauseGame()
     }
 
     override fun onDestroyView() {
@@ -104,7 +98,71 @@ class GameFragment : Fragment() {
         stopGame()
     }
 
-    // Инициализация подсистем
+    // Пауза / продолжение
+
+    private fun pauseGame() {
+        if (!isGameRunning) return
+        isPaused = true
+
+        // Останавливаем все аниматоры жуков
+        activeBugs.forEach { it.animator?.pause() }
+
+        // Останавливаем спавн новых
+        gameLoop?.let { handler.removeCallbacks(it) }
+        bonusLoop?.let { handler.removeCallbacks(it) }
+        timerJob?.cancel()
+    }
+
+    private fun resumeGame() {
+        isPaused = false
+
+        // Возобновляем аниматоры
+        activeBugs.forEach { it.animator?.resume() }
+
+        // Запускаем спавн
+        scheduleGameLoop()
+        scheduleBonusLoop()
+        scheduleTimer()
+    }
+
+    private fun scheduleTimer() {
+        timerJob = CoroutineScope(Dispatchers.Main).launch {
+            while (timeLeft > 0 && isGameRunning && !isPaused) {
+                delay(1000L)
+                timeLeft--
+                tvTimer.text = "Время: $timeLeft"
+            }
+            if (timeLeft <= 0) endGame()
+        }
+    }
+
+    private fun scheduleGameLoop() {
+        gameLoop = object : Runnable {
+            override fun run() {
+                if (isGameRunning && !isPaused) {
+                    if (activeBugs.size < config.maxBugs) {
+                        spawnAndAnimate()
+                    }
+                    handler.postDelayed(this, config.spawnDelayMs())
+                }
+            }
+        }
+        handler.post(gameLoop!!)
+    }
+
+    private fun scheduleBonusLoop() {
+        bonusLoop = object : Runnable {
+            override fun run() {
+                if (isGameRunning && !isPaused) {
+                    hammer.spawnHammer()
+                    handler.postDelayed(this, config.bonusInterval * 1000L)
+                }
+            }
+        }
+        handler.postDelayed(bonusLoop!!, config.bonusInterval * 1000L)
+    }
+
+    // Инициализация
 
     private fun initSubsystems() {
         pool = BugPool(requireContext(), container, bugSize)
@@ -113,6 +171,8 @@ class GameFragment : Fragment() {
             tvMisses.text = "Промахи: ${scoreTracker.misses}"
         }
         hammer = HammerManager(
+            context = requireContext(),
+            container = container,
             config = config,
             onTick = { seconds -> tvBonus.text = "МОЛОТОК! (${seconds}с)" },
             onEnd = { tvBonus.text = "Бонус: -" }
@@ -127,8 +187,6 @@ class GameFragment : Fragment() {
         val prefs = requireContext().getSharedPreferences("game_prefs", Context.MODE_PRIVATE)
         return prefs.getBoolean("is_registered", false)
     }
-
-    // Заглушка регистрации
 
     private fun showRegistrationRequired() {
         clearContainer()
@@ -155,55 +213,27 @@ class GameFragment : Fragment() {
         if (::pool.isInitialized) pool.clear()
     }
 
-    // Игровой цикл
+    // Запуск / остановка
 
     private fun startGame() {
         scoreTracker.reset()
         timeLeft = config.roundDuration
         isGameRunning = true
+        isPaused = false
 
         updateScoreUI()
         tvMisses.text = "Промахи: 0"
         tvTimer.text = "Время: $timeLeft"
         tvBonus.text = "Бонус: -"
 
-        // Таймер раунда
-        timerJob = CoroutineScope(Dispatchers.Main).launch {
-            while (timeLeft > 0 && isGameRunning) {
-                delay(1000L)
-                timeLeft--
-                tvTimer.text = "Время: $timeLeft"
-            }
-            endGame()
-        }
-
-        // Спавн жуков
-        gameLoop = object : Runnable {
-            override fun run() {
-                if (isGameRunning) {
-                    if (activeBugs.size < config.maxBugs) {
-                        spawnAndAnimate()
-                    }
-                    handler.postDelayed(this, config.spawnDelayMs())
-                }
-            }
-        }
-        handler.post(gameLoop!!)
-
-        // Спавн молотков
-        bonusLoop = object : Runnable {
-            override fun run() {
-                if (isGameRunning) {
-                    hammer.activate()
-                    handler.postDelayed(this, config.bonusInterval * 1000L)
-                }
-            }
-        }
-        handler.postDelayed(bonusLoop!!, config.bonusInterval * 1000L)
+        scheduleTimer()
+        scheduleGameLoop()
+        scheduleBonusLoop()
     }
 
     private fun stopGame() {
         isGameRunning = false
+        isPaused = false
         gameLoop?.let { handler.removeCallbacks(it) }
         bonusLoop?.let { handler.removeCallbacks(it) }
         timerJob?.cancel()
@@ -220,19 +250,18 @@ class GameFragment : Fragment() {
         ).show()
     }
 
-    // Спавн и анимация. Я без понятия как много здесь придётся переписывать
+    // Спавн и анимация
 
     private fun spawnAndAnimate() {
         val bug = spawner.spawn(bugSize)
         activeBugs.add(bug)
-
         val (tx, ty) = spawner.randomInsidePoint(bugSize)
         animateSegment(bug, tx, ty, isExit = false)
     }
 
     private fun animateSegment(bug: Bug, ex: Float, ey: Float, isExit: Boolean) {
-        val sx = bug.view.x
-        val sy = bug.view.y
+        val sx = bug.currentX
+        val sy = bug.currentY
 
         BugAnimator(
             bug = bug,
@@ -242,7 +271,7 @@ class GameFragment : Fragment() {
     }
 
     private fun onSegmentFinished(bug: Bug, isExit: Boolean) {
-        if (!isGameRunning) return
+        if (!isGameRunning || isPaused) return
 
         if (isExit) {
             activeBugs.remove(bug)
@@ -265,7 +294,7 @@ class GameFragment : Fragment() {
         }
     }
 
-    // Тап и попадание TODO: Возможно стоит на будущее сделать обводку границ попадания для тестов размера области попадания
+    // Тап
 
     private fun handleTap(tapX: Float, tapY: Float) {
         val hitRadius = hammer.hitRadius
@@ -273,8 +302,8 @@ class GameFragment : Fragment() {
         var best: Bug? = null
         var bestDist = Float.MAX_VALUE
         for (bug in activeBugs) {
-            val cx = bug.view.x + bug.size / 2f
-            val cy = bug.view.y + bug.size / 2f
+            val cx = bug.currentX + bug.size / 2f
+            val cy = bug.currentY + bug.size / 2f
             val d = hypot((tapX - cx).toDouble(), (tapY - cy).toDouble()).toFloat()
             if (d <= hitRadius && d < bestDist) {
                 best = bug
