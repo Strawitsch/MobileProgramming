@@ -7,15 +7,13 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
+import com.example.bugs.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.random.Random
-import kotlin.time.Duration.Companion.milliseconds
-import androidx.core.graphics.toColorInt
-import androidx.core.graphics.drawable.toDrawable
 
 class HammerManager(
     private val context: Context,
@@ -44,8 +42,7 @@ class HammerManager(
         val size = 100
         val view = ImageView(context).apply {
             layoutParams = FrameLayout.LayoutParams(size, size)
-            // TODO: заменить на setImageResource(R.drawable.hammer)
-            setImageDrawable("#8B4513".toColorInt().toDrawable())
+            setImageResource(R.drawable.hammer)
             scaleType = ImageView.ScaleType.FIT_CENTER
         }
 
@@ -80,7 +77,7 @@ class HammerManager(
         job?.cancel()
         job = scope.launch {
             while (timeLeft > 0) {
-                delay(1000L.milliseconds)
+                delay(1000L)
                 timeLeft--
                 onTick(timeLeft)
             }

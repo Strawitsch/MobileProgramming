@@ -26,8 +26,8 @@ class AuthorsFragment : Fragment() {
         rvAuthors.layoutManager = LinearLayoutManager(context)
 
         val authors = listOf(
-            Author("Иваненко Дмитрий ИП-313", R.drawable.ic_launcher_background),
-            Author("Крючков Константин ИП-313", R.drawable.ic_launcher_background),
+            Author(getString(R.string.autor1), R.drawable.ic_launcher_background),
+            Author(getString(R.string.autor2), R.drawable.ic_launcher_background),
         )
 
         rvAuthors.adapter = AuthorsAdapter(authors)

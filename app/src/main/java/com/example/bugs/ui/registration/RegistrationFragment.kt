@@ -46,14 +46,17 @@ class RegistrationFragment : Fragment() {
         val btnRegister = view.findViewById<Button>(R.id.btnRegister)
         val tvResult = view.findViewById<TextView>(R.id.tvResult)
 
-        val courses = arrayOf("1 курс", "2 курс", "3 курс", "4 курс")
+        val courses = arrayOf(getString(R.string.course1), getString(R.string.course2),
+            getString(R.string.course3), getString(R.string.course4))
         spinnerCourse.adapter = ArrayAdapter(
             requireContext(),
             android.R.layout.simple_spinner_dropdown_item,
             courses
         )
 
-        val difficultyLevels = arrayOf("Очень легкий", "Легкий", "Средний", "Сложный", "Очень сложный")
+        val difficultyLevels = arrayOf(getString(R.string.very_easy),
+            getString(R.string.easy), getString(R.string.mediaval),
+            getString(R.string.hard), getString(R.string.very_hard))
         seekBarDifficulty.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 tvDifficultyLabel.text = difficultyLevels[progress]
@@ -81,19 +84,19 @@ class RegistrationFragment : Fragment() {
         btnRegister.setOnClickListener {
             val fullName = etFullName.text.toString().trim()
             if (fullName.isEmpty()) {
-                Toast.makeText(context, "Введите ФИО", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, getString(R.string.Input_name), Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
             val birthDateText = etBirthDate.text.toString().trim()
             if (birthDateText.isEmpty()) {
-                Toast.makeText(context, "Введите дату рождения", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, getString(R.string.input_birthdate), Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
             val parsedDate = parseDate(birthDateText)
             if (parsedDate == null) {
-                Toast.makeText(context, "Неверный формат даты", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, getString(R.string.vrong_date_format), Toast.LENGTH_LONG).show()
                 return@setOnClickListener
             }
             selectedDate = parsedDate
@@ -115,14 +118,16 @@ class RegistrationFragment : Fragment() {
 
             val player = Player(fullName, gender, course, difficulty, birthDate, zodiac)
 
-            tvResult.text = """
-                ФИО: ${player.fullName}
-                Пол: ${player.gender.displayName}
-                Курс: ${player.course}
-                Уровень сложности: ${difficultyLevels[player.difficulty]}
-                Дата рождения: ${player.birthDate}
-                Знак зодиака: ${player.zodiac.displayName} ${player.zodiac.symbol}
-            """.trimIndent()
+            tvResult.text = getString(
+                R.string.form_result,
+                player.fullName,
+                player.gender.displayName,
+                player.course,
+                difficultyLevels[player.difficulty],
+                player.birthDate,
+                player.zodiac.displayName,
+                player.zodiac.symbol
+            ).trimIndent()
 
             if (zodiac.symbol.isNotEmpty()) {
                 tvZodiacSymbol.text = zodiac.symbol
