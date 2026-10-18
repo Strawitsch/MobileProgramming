@@ -1,17 +1,11 @@
 package com.example.bugs.ui.game
 
-import android.graphics.drawable.ColorDrawable
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import com.example.bugs.R
 import com.example.bugs.model.game.Bug
 import com.example.bugs.model.game.BugColor
 import kotlin.random.Random
-
-/**
- * Здесь находится основная логика спавна и ухода жучков за пределом экрана.
- * Если здесб что-то сломается, то только бог сможет это починить, и даже в этом я не уверен.
- */
 
 class BugSpawner(
     private val container: FrameLayout,
@@ -20,7 +14,6 @@ class BugSpawner(
     private val onBugMissed: () -> Unit
 ) {
 
-    /** Спавн нового жука */
     fun spawn(size: Int): Bug? {
         val width = container.width
         val height = container.height
@@ -47,6 +40,9 @@ class BugSpawner(
         view.translationX = startX
         view.translationY = startY
 
+        if (view.parent != null) {
+            (view.parent as ViewGroup).removeView(view)
+        }
         container.addView(view)
 
         val bug = Bug(
@@ -60,7 +56,6 @@ class BugSpawner(
         return bug
     }
 
-    /** Случайная точка внутри поля */
     fun randomInsidePoint(size: Int): Pair<Float, Float> {
         val width = container.width
         val height = container.height
@@ -69,7 +64,6 @@ class BugSpawner(
         return Pair(x, y)
     }
 
-    /** Случайная точка за границей поля */
     fun randomEdgePoint(width: Int, height: Int, size: Int): Pair<Float, Float> {
         return when (Random.nextInt(4)) {
             0 -> Pair(-size.toFloat(), Random.nextInt(0, height).toFloat())     // слева
