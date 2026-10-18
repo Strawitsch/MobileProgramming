@@ -447,46 +447,8 @@ class GameFragment : Fragment() {
     private fun spawnAndAnimate() {
         val bug = spawner.spawn(bugSize) ?: return
         activeBugs.add(bug)
-        val (tx, ty) = spawner.randomInsidePoint(bugSize)
-        animateSegment(bug, tx, ty, isExit = false)
-    }
-
-    private fun animateSegment(bug: Bug, ex: Float, ey: Float, isExit: Boolean) {
-        val sx = bug.currentX
-        val sy = bug.currentY
-
-        BugAnimator(
-            bug = bug,
-            durationMs = config.segmentDurationMs(),
-            onSegmentEnd = { finishedBug -> onSegmentFinished(finishedBug, isExit) }
-        ).start(sx, sy, ex, ey)
-    }
-
-    @SuppressLint("SetTextI18n")
-    private fun onSegmentFinished(bug: Bug, isExit: Boolean) {
-        if (!isGameRunning || isPaused) return
-        if (bug.isDead) return
-
-        if (isExit) {
-            bug.isDead = true
-            activeBugs.remove(bug)
-            pool.recycle(bug.view)
-            scoreTracker.addMiss()
-            tvMisses.text = getString(R.string.misses3, scoreTracker.misses)
-            return
-        }
-
-        bug.waypointsLeft--
-
-        if (bug.waypointsLeft <= 0) {
-            val (exitX, exitY) = spawner.randomEdgePoint(
-                container.width, container.height, bug.size
-            )
-            animateSegment(bug, exitX, exitY, isExit = true)
-        } else {
-            val (nx, ny) = spawner.randomInsidePoint(bug.size)
-            animateSegment(bug, nx, ny, isExit = false)
-        }
+        val speedFactor = config.speed / 5f
+        MoveAndSlideAnimator(bug, container, speedFactor).start()
     }
 
     // Тап
