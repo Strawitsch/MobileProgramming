@@ -20,6 +20,7 @@ import com.example.bugs.data.UserEntity
 import com.example.bugs.model.Gender
 import com.example.bugs.model.Player
 import com.example.bugs.model.Zodiac
+import com.example.bugs.model.game.DifficultyPresets
 import com.example.bugs.ui.users.UsersAdapter
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import kotlinx.coroutines.Dispatchers
@@ -150,6 +151,7 @@ class RegistrationFragment : Fragment() {
             }
             if (!isAdded) return@launch
 
+            DifficultyPresets.applyPreset(ctx, user.difficulty)
             saveUserToPrefs(user)
             activeUser = user.copy(isSelected = true)
             updateActiveUserUI(user)
@@ -422,6 +424,7 @@ class RegistrationFragment : Fragment() {
                     }
                     if (!isAdded) return@launch
 
+                    DifficultyPresets.applyPreset(ctx, player.difficulty)
                     saveUserToPrefs(userEntity.copy(id = newUserId))
                     showUserList()
                     loadUsers()
@@ -442,6 +445,7 @@ class RegistrationFragment : Fragment() {
                     }
                     if (!isAdded) return@launch
 
+                    DifficultyPresets.applyPreset(ctx, updatedEntity.difficulty)
                     if (updatedEntity.isSelected) {
                         saveUserToPrefs(updatedEntity)
                     }

@@ -24,4 +24,7 @@ interface UserDao {
 
     @Query("SELECT * FROM users WHERE isSelected = 1 LIMIT 1")
     suspend fun getSelectedUser(): UserEntity?
+
+    @Query("UPDATE users SET difficulty = :difficulty WHERE isSelected = 1")
+    suspend fun updateActiveUserDifficulty(difficulty: Int)
 }

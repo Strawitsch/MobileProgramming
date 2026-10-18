@@ -11,26 +11,16 @@ import android.view.ViewGroup
 import android.widget.*
 import androidx.core.content.edit
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import com.example.bugs.R
+import com.example.bugs.data.AppDatabase
+import com.example.bugs.model.game.DifficultyPresets
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class SettingsFragment : Fragment() {
 
     private var isApplyingPreset = false
-
-    private data class DifficultyPreset(
-        val speed: Int,
-        val maxBugs: Int,
-        val bonusInterval: Int,
-        val roundDuration: Int
-    )
-
-    private val presets = listOf(
-        DifficultyPreset(2, 6, 20, 60),   // Очень легкий
-        DifficultyPreset(4, 8, 18, 60),   // Легкий
-        DifficultyPreset(6, 10, 15, 60),  // Средний
-        DifficultyPreset(8, 12, 12, 45),  // Сложный
-        DifficultyPreset(10, 15, 10, 45)  // Очень сложный
-    )
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -61,9 +51,9 @@ class SettingsFragment : Fragment() {
         val prefs = requireContext().getSharedPreferences("game_prefs", Context.MODE_PRIVATE)
         val savedDifficulty = prefs.getInt("settings_difficulty_index", 2) // default Medium
 
-        seekSpeed.max = 9
-        val savedSpeed = prefs.getInt("speed", 6)
-        seekSpeed.progress = (savedSpeed - 1).coerceIn(0, 9)
+        seekSpeed.max = 14
+        val savedSpeed = prefs.getInt("speed", 10)
+        seekSpeed.progress = (savedSpeed - 1).coerceIn(0, 14)
         tvSpeedValue.text = getString(R.string.speed, savedSpeed)
 
         etMaxBugs.setText(prefs.getInt("max_bugs", 10).toString())
@@ -77,15 +67,23 @@ class SettingsFragment : Fragment() {
         spinnerDifficulty.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 if (isApplyingPreset) return
-                if (position in presets.indices) {
-                    val preset = presets[position]
+                if (position in DifficultyPresets.presets.indices) {
+                    val preset = DifficultyPresets.presets[position]
                     isApplyingPreset = true
-                    seekSpeed.progress = (preset.speed - 1).coerceIn(0, 9)
+                    seekSpeed.progress = (preset.speed - 1).coerceIn(0, 14)
                     tvSpeedValue.text = getString(R.string.speed, preset.speed)
                     etMaxBugs.setText(preset.maxBugs.toString())
                     etBonusInterval.setText(preset.bonusInterval.toString())
                     etRoundDuration.setText(preset.roundDuration.toString())
                     isApplyingPreset = false
+
+                    val ctx = context
+                    if (ctx != null) {
+                        DifficultyPresets.applyPreset(ctx, position)
+                        lifecycleScope.launch(Dispatchers.IO) {
+                            AppDatabase.getInstance(ctx).userDao().updateActiveUserDifficulty(position)
+                        }
+                    }
                 }
             }
             override fun onNothingSelected(parent: AdapterView<*>?) {}
@@ -133,6 +131,13 @@ class SettingsFragment : Fragment() {
                     .putInt("bonus_interval", bonusInterval)
                     .putInt("round_duration", roundDuration)
                     .putInt("settings_difficulty_index", difficultyIndex)
+            }
+
+            val ctx = context
+            if (ctx != null && difficultyIndex in DifficultyPresets.presets.indices) {
+                lifecycleScope.launch(Dispatchers.IO) {
+                    AppDatabase.getInstance(ctx).userDao().updateActiveUserDifficulty(difficultyIndex)
+                }
             }
 
             Toast.makeText(context, getString(R.string.pref_created_toast), Toast.LENGTH_SHORT).show()
