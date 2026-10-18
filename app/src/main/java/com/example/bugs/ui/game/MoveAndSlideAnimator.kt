@@ -21,7 +21,8 @@ class MoveAndSlideAnimator(
         var x = bug.currentX
         var y = bug.currentY
         val angle = Random.nextFloat() * 2f * PI.toFloat()
-        val speed = (120f + Random.nextFloat() * 120f) * speedMultiplier
+        val baseSpeed = 300f + Random.nextFloat() * 250f
+        val speed = baseSpeed * (speedMultiplier * 1.8f)
         var vx = speed * cos(angle)
         var vy = speed * sin(angle)
 
