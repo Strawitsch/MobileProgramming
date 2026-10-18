@@ -21,7 +21,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/Points_0"
+            android:text="@string/score"
             android:textColor="#FFFFFF"
             android:textSize="16sp"
             android:textStyle="bold" />
@@ -31,7 +31,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/Misses_0"
+            android:text="@string/misses"
             android:textColor="#FFFFFF"
             android:textSize="16sp"
             android:textStyle="bold" />
@@ -41,7 +41,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/Time_60"
+            android:text="@string/timer"
             android:textColor="#FFFFFF"
             android:textSize="16sp"
             android:textStyle="bold" />
@@ -51,7 +51,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/Bonus"
+            android:text="@string/bonus"
             android:textColor="#FFEB3B"
             android:textSize="16sp"
             android:textStyle="bold" />
@@ -73,7 +73,7 @@
             style="?android:attr/buttonBarButtonStyle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/Play"
+            android:text="@string/play"
             android:layout_marginEnd="12dp" />
 
         <Button
@@ -81,7 +81,7 @@
             style="?android:attr/buttonBarButtonStyle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/Resume"
+            android:text="@string/resume"
             android:visibility="gone" />
     </LinearLayout>
 

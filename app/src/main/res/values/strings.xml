@@ -38,4 +38,6 @@
     <string name="pref_created_toast">Настройки сохранены</string>
     <string name="registration">Сначала зарегистрируйтесь на вкладке «Игрок»</string>
     <string name="reg1">Сначала зарегистрируйтесь</string>
+    <string name="play">Играть</string>
+    <string name="resume">Продолжить</string>
 </resources>
