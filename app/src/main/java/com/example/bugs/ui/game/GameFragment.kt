@@ -18,7 +18,13 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import com.example.bugs.MainActivity
 import com.example.bugs.R
+import com.example.bugs.data.AppDatabase
+import com.example.bugs.data.ScoreRecordEntity
 import com.example.bugs.model.game.Bug
+import androidx.lifecycle.lifecycleScope
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -191,6 +197,9 @@ class GameFragment : Fragment() {
 
     @SuppressLint("SetTextI18n")
     private fun startNewRound() {
+        if (!::config.isInitialized) {
+            config = GameConfig.load(requireContext())
+        }
         scoreTracker.reset()
         timeLeft = config.roundDuration
         isGameRunning = true
@@ -298,6 +307,9 @@ class GameFragment : Fragment() {
 
     @SuppressLint("SetTextI18n")
     private fun initSubsystems() {
+        if (!::config.isInitialized) {
+            config = GameConfig.load(requireContext())
+        }
         if (::pool.isInitialized) pool.clear()
         pool = BugPool(requireContext(), bugSize)
         spawner = BugSpawner(container, pool, config) {
@@ -391,11 +403,43 @@ class GameFragment : Fragment() {
         showIdleUI()
         lockNavigation(false)
 
+        saveScoreToDatabase()
+
         Toast.makeText(
             context,
             getString(R.string.end_game_toast, scoreTracker.score, scoreTracker.misses),
             Toast.LENGTH_LONG
         ).show()
+    }
+
+    private fun saveScoreToDatabase() {
+        val prefs = requireContext().getSharedPreferences("game_prefs", Context.MODE_PRIVATE)
+        val userName = prefs.getString("player_name", "Игрок") ?: "Игрок"
+        val difficulty = prefs.getInt("player_difficulty", 0)
+        val userId = prefs.getLong("active_user_id", 0L)
+
+        val difficultyLevels = resources.getStringArray(R.array.difficulty_levels_array)
+        val diffName = if (difficulty in difficultyLevels.indices) {
+            difficultyLevels[difficulty]
+        } else {
+            difficulty.toString()
+        }
+
+        val dateStr = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date())
+
+        val record = ScoreRecordEntity(
+            userId = userId,
+            userName = userName,
+            score = scoreTracker.score,
+            misses = scoreTracker.misses,
+            difficulty = difficulty,
+            difficultyName = diffName,
+            date = dateStr
+        )
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            AppDatabase.getInstance(requireContext()).scoreDao().insertScore(record)
+        }
     }
 
     // Спавн и анимация
