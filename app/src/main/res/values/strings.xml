@@ -40,4 +40,24 @@
     <string name="reg1">Сначала зарегистрируйтесь</string>
     <string name="play">Играть</string>
     <string name="resume">Продолжить</string>
+
+    <string name="nav_users">Пользователи</string>
+    <string name="nav_game">Игра</string>
+    <string name="nav_records">Рекорды</string>
+    <string name="nav_rules">Правила</string>
+    <string name="nav_authors">Авторы</string>
+    <string name="nav_settings">Настройки</string>
+    <string name="no_records">Нет сохраненных рекордов</string>
+    <string name="user_selected_toast">Выбран игрок: %1$s</string>
+    <string name="score_saved_toast">Результат сохранен в базу данных!</string>
+    <string name="custom_difficulty">Пользовательская</string>
+
+    <string-array name="difficulty_levels_array">
+        <item>@string/very_easy</item>
+        <item>@string/easy</item>
+        <item>@string/mediaval</item>
+        <item>@string/hard</item>
+        <item>@string/very_hard</item>
+        <item>@string/custom_difficulty</item>
+    </string-array>
 </resources>
