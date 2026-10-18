@@ -455,20 +455,11 @@ class GameFragment : Fragment() {
 
     @SuppressLint("SetTextI18n")
     private fun handleTap(tapX: Float, tapY: Float) {
-        val hitRadius = hammer.hitRadius
+        val hitRadius = maxOf(hammer.hitRadius, bugSize * 0.75f)
 
-        showHitIndicator(tapX, tapY, hitRadius)
+        showHitIndicator(tapX, tapY, hammer.hitRadius)
 
-        val hitBugs = mutableListOf<Bug>()
-        for (bug in activeBugs) {
-            if (bug.isDead) continue
-            val cx = bug.currentX + bug.size / 2f
-            val cy = bug.currentY + bug.size / 2f
-            val d = hypot((tapX - cx).toDouble(), (tapY - cy).toDouble()).toFloat()
-            if (d <= hitRadius) {
-                hitBugs.add(bug)
-            }
-        }
+        val hitBugs = activeBugs.filter { it.isHit(tapX, tapY, hitRadius) }
 
         if (hitBugs.isNotEmpty()) {
             hitBugs.forEach { killBug(it) }
