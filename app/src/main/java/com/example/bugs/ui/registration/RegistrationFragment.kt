@@ -405,6 +405,25 @@ class RegistrationFragment : Fragment() {
                 val ctx = context ?: return@launch
                 val currentEditing = editingUser
 
+                val allUsers = withContext(Dispatchers.IO) {
+                    AppDatabase.getInstance(ctx).userDao().getAllUsers()
+                }
+
+                val duplicate = allUsers.find { existing ->
+                    val isSameUser = currentEditing != null && existing.id == currentEditing.id
+                    !isSameUser &&
+                        existing.fullName.equals(player.fullName, ignoreCase = true) &&
+                        existing.gender == player.gender.displayName &&
+                        existing.course == player.course &&
+                        existing.difficulty == player.difficulty &&
+                        existing.birthDate == player.birthDate
+                }
+
+                if (duplicate != null) {
+                    Toast.makeText(ctx, "Такой пользователь уже существует!", Toast.LENGTH_LONG).show()
+                    return@launch
+                }
+
                 if (currentEditing == null) {
                     val userEntity = UserEntity(
                         fullName = player.fullName,
