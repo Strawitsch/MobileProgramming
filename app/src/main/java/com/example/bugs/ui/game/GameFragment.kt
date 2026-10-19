@@ -427,18 +427,33 @@ class GameFragment : Fragment() {
 
         val dateStr = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date())
 
-        val record = ScoreRecordEntity(
-            userId = userId,
-            userName = userName,
-            score = scoreTracker.score,
-            misses = scoreTracker.misses,
-            difficulty = difficulty,
-            difficultyName = diffName,
-            date = dateStr
-        )
-
         lifecycleScope.launch(Dispatchers.IO) {
-            AppDatabase.getInstance(requireContext()).scoreDao().insertScore(record)
+            val db = AppDatabase.getInstance(requireContext())
+            val existing = db.scoreDao().getScoreForUserAndDifficulty(userId, difficulty)
+            if (existing != null) {
+                if (scoreTracker.score >= existing.score) {
+                    val updated = existing.copy(
+                        userName = userName,
+                        score = scoreTracker.score,
+                        misses = scoreTracker.misses,
+                        difficultyName = diffName,
+                        date = dateStr,
+                        timestamp = System.currentTimeMillis()
+                    )
+                    db.scoreDao().updateScore(updated)
+                }
+            } else {
+                val record = ScoreRecordEntity(
+                    userId = userId,
+                    userName = userName,
+                    score = scoreTracker.score,
+                    misses = scoreTracker.misses,
+                    difficulty = difficulty,
+                    difficultyName = diffName,
+                    date = dateStr
+                )
+                db.scoreDao().insertScore(record)
+            }
         }
     }
 
